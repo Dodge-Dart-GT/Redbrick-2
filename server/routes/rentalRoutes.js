@@ -3,7 +3,6 @@ const router = express.Router();
 const RentalRequest = require('../models/RentalRequest');
 const Forklift = require('../models/Forklift');
 
-// 1. CREATE REQUEST (Only blocks if an overlap is already 'Active')
 router.post('/', async (req, res) => {
   const { userId, forkliftId, startDate, endDate } = req.body;
 
@@ -15,15 +14,11 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ message: 'End date must be after start date.' });
     }
 
-    // OVERLAP CHECK: Only look for 'Active' (Approved) requests
     const overlappingRequests = await RentalRequest.find({
       forklift: forkliftId,
       status: 'Active', 
       $or: [
-        {
-          startDate: { $lte: end },
-          endDate: { $gte: start }
-        }
+        { startDate: { $lte: end }, endDate: { $gte: start } }
       ]
     });
 
@@ -33,13 +28,8 @@ router.post('/', async (req, res) => {
       });
     }
 
-    // If no ACTIVE overlaps, create the pending request!
     const request = await RentalRequest.create({
-      user: userId,
-      forklift: forkliftId,
-      startDate: start,
-      endDate: end,
-      status: 'Pending'
+      user: userId, forklift: forkliftId, startDate: start, endDate: end, status: 'Pending'
     });
 
     res.status(201).json(request);
@@ -48,7 +38,6 @@ router.post('/', async (req, res) => {
   }
 });
 
-// 2. GET ALL REQUESTS (Includes Phone, Address, Capacity, and Power for the Modal)
 router.get('/all', async (req, res) => {
   try {
     const requests = await RentalRequest.find({})
@@ -60,7 +49,6 @@ router.get('/all', async (req, res) => {
   }
 });
 
-// 3. GET MY REQUESTS
 router.get('/myrequests/:userId', async (req, res) => {
   try {
     const requests = await RentalRequest.find({ user: req.params.userId })
@@ -71,40 +59,44 @@ router.get('/myrequests/:userId', async (req, res) => {
   }
 });
 
-// 4. UPDATE STATUS (With Auto-Reject Logic)
 router.put('/:id', async (req, res) => {
-  const { status } = req.body; 
+  const { status, rejectionReason } = req.body; // <-- Receive reason from frontend
   
   try {
     const request = await RentalRequest.findById(req.params.id);
     if (!request) return res.status(404).json({ message: 'Request not found' });
 
     request.status = status;
+
+    // Save manual rejection reason if provided
+    if (status === 'Rejected') {
+      request.rejectionReason = rejectionReason || 'Declined by Administrator.';
+    }
+
     await request.save();
 
-    // If Owner accepts ('Active')
     if (status === 'Active') {
-      // 1. Mark forklift as 'Rented'
       await Forklift.findByIdAndUpdate(request.forklift, { status: 'Rented' });
       
-      // 2. AUTO-REJECT any other 'Pending' requests for this forklift that overlap with these dates
+      // AUTO-REJECT LOGIC (Now includes the reason!)
       await RentalRequest.updateMany(
         {
-          _id: { $ne: request._id }, // Do not reject the one we just accepted!
+          _id: { $ne: request._id }, 
           forklift: request.forklift,
           status: 'Pending',
           $or: [
-            {
-              startDate: { $lte: request.endDate },
-              endDate: { $gte: request.startDate }
-            }
+            { startDate: { $lte: request.endDate }, endDate: { $gte: request.startDate } }
           ]
         },
-        { $set: { status: 'Rejected' } }
+        { 
+          $set: { 
+            status: 'Rejected',
+            rejectionReason: 'Schedule Conflict: This forklift was booked by another customer for these overlapping dates.'
+          } 
+        }
       );
     }
     
-    // If Rental is done ('Completed')
     if (status === 'Completed') {
       await Forklift.findByIdAndUpdate(request.forklift, { status: 'Available' });
     }

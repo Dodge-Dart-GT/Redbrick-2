@@ -5,7 +5,7 @@ import {
   Box, Grid, Paper, Typography, Chip, Table, TableBody, TableCell, 
   TableContainer, TableHead, TableRow, IconButton, Tooltip, List, ListItem, 
   ListItemIcon, ListItemText, Button, Dialog, DialogTitle, DialogContent, 
-  DialogActions, Divider
+  DialogActions, Divider, TextField, Pagination // <-- NEW IMPORTS
 } from '@mui/material';
 import Navbar from '../components/Navbar';
 import ForkliftIcon from '@mui/icons-material/Forklift'; 
@@ -15,7 +15,7 @@ import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import PersonIcon from '@mui/icons-material/Person';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
-import DoneAllIcon from '@mui/icons-material/DoneAll'; // <-- NEW ICON FOR COMPLETION
+import DoneAllIcon from '@mui/icons-material/DoneAll';
 
 export default function OwnerDashboard() {
   const navigate = useNavigate();
@@ -27,9 +27,19 @@ export default function OwnerDashboard() {
   const [openModal, setOpenModal] = useState(false);
   const [selectedReq, setSelectedReq] = useState(null);
 
-  // NEW: Confirm Completion Modal State
+  // Confirm Completion Modal State
   const [confirmCompleteModal, setConfirmCompleteModal] = useState(false);
   const [rentalToComplete, setRentalToComplete] = useState(null);
+
+  // Rejection Modal State
+  const [rejectModal, setRejectModal] = useState(false);
+  const [rentalToReject, setRentalToReject] = useState(null);
+  const [rejectionReason, setRejectionReason] = useState('');
+
+  // --- NEW: PAGINATION & SEARCH STATE ---
+  const [page, setPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState("");
+  const ITEMS_PER_PAGE = 10;
 
   useEffect(() => {
     const userInfo = JSON.parse(localStorage.getItem('userInfo'));
@@ -40,8 +50,12 @@ export default function OwnerDashboard() {
   const fetchData = async () => {
     try {
       const requestRes = await axios.get('http://localhost:5000/api/rentals/all');
-      setRequests(requestRes.data);
-      const pendingCount = requestRes.data.filter(r => r.status === 'Pending').length;
+      
+      // Sort so the newest requests are always at the top
+      const sortedData = requestRes.data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      
+      setRequests(sortedData);
+      const pendingCount = sortedData.filter(r => r.status === 'Pending').length;
       setStats({ requests: pendingCount });
     } catch (error) {
       console.error("Error fetching data", error);
@@ -58,18 +72,32 @@ export default function OwnerDashboard() {
     }
   };
 
-  const handleReject = async (id) => {
-    if (window.confirm("Reject request?")) {
-      try {
-        await axios.put(`http://localhost:5000/api/rentals/${id}`, { status: 'Rejected' });
-        fetchData();
-      } catch (error) {
-        alert("Error updating status");
-      }
+  // --- REJECTION MODAL HANDLERS ---
+  const handleOpenReject = (id) => {
+    setRentalToReject(id);
+    setRejectionReason(''); 
+    setRejectModal(true);
+  };
+
+  const handleCloseReject = () => {
+    setRejectModal(false);
+    setRentalToReject(null);
+  };
+
+  const executeRejectRental = async () => {
+    try {
+      await axios.put(`http://localhost:5000/api/rentals/${rentalToReject}`, { 
+        status: 'Rejected',
+        rejectionReason: rejectionReason || 'Declined by Administrator.' 
+      });
+      fetchData();
+      handleCloseReject();
+    } catch (error) {
+      alert("Error updating status");
     }
   };
 
-  // --- MODAL HANDLERS ---
+  // --- View Details Handlers ---
   const handleOpenDetails = (req) => {
     setSelectedReq(req);
     setOpenModal(true);
@@ -80,7 +108,7 @@ export default function OwnerDashboard() {
     setSelectedReq(null);
   };
 
-  // NEW: Completion Modal Handlers
+  // --- Completion Handlers ---
   const handleOpenComplete = (req) => {
     setRentalToComplete(req);
     setConfirmCompleteModal(true);
@@ -116,6 +144,26 @@ export default function OwnerDashboard() {
     if (!start || !end) return 0;
     const diffTime = Math.abs(new Date(end) - new Date(start));
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  };
+
+  // --- NEW: FILTER & PAGINATION LOGIC ---
+  const filteredRequests = requests.filter(r => {
+    const searchLower = searchTerm.toLowerCase();
+    const customerName = `${r.user?.firstName} ${r.user?.lastName}`.toLowerCase();
+    const modelName = r.forklift?.model?.toLowerCase() || "";
+    const refId = r._id.toLowerCase();
+    
+    return customerName.includes(searchLower) || 
+           modelName.includes(searchLower) || 
+           refId.includes(searchLower);
+  });
+
+  const pageCount = Math.ceil(filteredRequests.length / ITEMS_PER_PAGE);
+  const displayedRequests = filteredRequests.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
+
+  const handleSearch = (e) => {
+    setSearchTerm(e.target.value);
+    setPage(1); // Reset to page 1 when searching
   };
 
   return (
@@ -156,9 +204,21 @@ export default function OwnerDashboard() {
             </Grid>
 
             <Paper elevation={3} sx={{ p: 3 }}>
-              <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 2, fontFamily: 'Oswald' }}>
-                RENTAL AGREEMENTS
-              </Typography>
+              {/* --- NEW: SEARCH BAR IN HEADER --- */}
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography variant="h5" sx={{ fontWeight: 'bold', fontFamily: 'Oswald' }}>
+                  RENTAL AGREEMENTS
+                </Typography>
+                <TextField 
+                  placeholder="Search Customer, Model, or ID..." 
+                  size="small" 
+                  variant="outlined" 
+                  sx={{ width: 280 }} 
+                  value={searchTerm}
+                  onChange={handleSearch}
+                />
+              </Box>
+              
               <TableContainer>
                 <Table>
                   <TableHead sx={{ backgroundColor: '#eeeeee' }}>
@@ -172,59 +232,76 @@ export default function OwnerDashboard() {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {requests.map((row) => (
-                      <TableRow key={row._id}>
-                        <TableCell>{row.user?.firstName} {row.user?.lastName}</TableCell>
-                        <TableCell>{row.forklift?.model}</TableCell>
-                        <TableCell>{row.startDate ? new Date(row.startDate).toLocaleDateString() : 'N/A'}</TableCell>
-                        <TableCell>{row.endDate ? new Date(row.endDate).toLocaleDateString() : 'N/A'}</TableCell>
-                        <TableCell>
-                          <Chip label={row.status} color={getStatusColor(row.status)} size="small" />
-                        </TableCell>
-                        <TableCell align="center">
-                          <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
-                            
-                            <Tooltip title="View Details">
-                              <IconButton color="primary" onClick={() => handleOpenDetails(row)}>
-                                <VisibilityIcon />
-                              </IconButton>
-                            </Tooltip>
-
-                            {/* NEW: COMPLETE BUTTON (Only shows if Active) */}
-                            {row.status === 'Active' && (
-                              <Tooltip title="Mark as Completed/Returned">
-                                <IconButton color="secondary" onClick={() => handleOpenComplete(row)}>
-                                  <DoneAllIcon />
+                    {/* NEW: MAP OVER displayedRequests INSTEAD OF requests */}
+                    {displayedRequests.length > 0 ? (
+                      displayedRequests.map((row) => (
+                        <TableRow key={row._id}>
+                          <TableCell>{row.user?.firstName} {row.user?.lastName}</TableCell>
+                          <TableCell>{row.forklift?.model}</TableCell>
+                          <TableCell>{row.startDate ? new Date(row.startDate).toLocaleDateString() : 'N/A'}</TableCell>
+                          <TableCell>{row.endDate ? new Date(row.endDate).toLocaleDateString() : 'N/A'}</TableCell>
+                          <TableCell>
+                            <Chip label={row.status} color={getStatusColor(row.status)} size="small" />
+                          </TableCell>
+                          <TableCell align="center">
+                            <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
+                              
+                              <Tooltip title="View Details">
+                                <IconButton color="primary" onClick={() => handleOpenDetails(row)}>
+                                  <VisibilityIcon />
                                 </IconButton>
                               </Tooltip>
-                            )}
 
-                            {row.status === 'Pending' && (
-                              <>
-                                <Tooltip title="Accept">
-                                  <IconButton color="success" onClick={() => handleAccept(row._id)}>
-                                    <CheckCircleIcon />
+                              {row.status === 'Active' && (
+                                <Tooltip title="Mark as Completed/Returned">
+                                  <IconButton color="secondary" onClick={() => handleOpenComplete(row)}>
+                                    <DoneAllIcon />
                                   </IconButton>
                                 </Tooltip>
-                                <Tooltip title="Reject">
-                                  <IconButton color="error" onClick={() => handleReject(row._id)}>
-                                    <CancelIcon />
-                                  </IconButton>
-                                </Tooltip>
-                              </>
-                            )}
-                          </Box>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    {requests.length === 0 && (
+                              )}
+
+                              {row.status === 'Pending' && (
+                                <>
+                                  <Tooltip title="Accept">
+                                    <IconButton color="success" onClick={() => handleAccept(row._id)}>
+                                      <CheckCircleIcon />
+                                    </IconButton>
+                                  </Tooltip>
+                                  <Tooltip title="Reject">
+                                    <IconButton color="error" onClick={() => handleOpenReject(row._id)}>
+                                      <CancelIcon />
+                                    </IconButton>
+                                  </Tooltip>
+                                </>
+                              )}
+                            </Box>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
                       <TableRow>
-                        <TableCell colSpan={6} align="center">No rental agreements found.</TableCell>
+                        <TableCell colSpan={6} align="center">
+                          {searchTerm ? 'No rental agreements match your search.' : 'No rental agreements found.'}
+                        </TableCell>
                       </TableRow>
                     )}
                   </TableBody>
                 </Table>
               </TableContainer>
+
+              {/* --- NEW: PAGINATION CONTROLS --- */}
+              {pageCount > 1 && (
+                <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+                  <Pagination 
+                    count={pageCount} 
+                    page={page} 
+                    onChange={(e, value) => setPage(value)} 
+                    color="primary" 
+                    shape="rounded"
+                  />
+                </Box>
+              )}
+
             </Paper>
           </Grid>
 
@@ -292,6 +369,19 @@ export default function OwnerDashboard() {
                   Reference ID: {selectedReq._id}
                 </Typography>
               </Grid>
+
+              {selectedReq.status === 'Rejected' && selectedReq.rejectionReason && (
+                <Grid item xs={12}>
+                  <Box sx={{ mt: 1, p: 2, bgcolor: '#ffebee', borderRadius: 2, border: '1px solid #ffcdd2' }}>
+                    <Typography variant="subtitle2" color="error.main" fontWeight="bold">
+                      Reason for Rejection:
+                    </Typography>
+                    <Typography variant="body2" color="error.dark">
+                      {selectedReq.rejectionReason}
+                    </Typography>
+                  </Box>
+                </Grid>
+              )}
             </Grid>
           )}
         </DialogContent>
@@ -301,12 +391,11 @@ export default function OwnerDashboard() {
               <Button onClick={() => { handleAccept(selectedReq._id); handleCloseDetails(); }} variant="contained" color="success">
                 Accept
               </Button>
-              <Button onClick={() => { handleReject(selectedReq._id); handleCloseDetails(); }} variant="outlined" color="error">
+              <Button onClick={() => { handleCloseDetails(); handleOpenReject(selectedReq._id); }} variant="outlined" color="error">
                 Reject
               </Button>
             </>
           )}
-          {/* We also added the Complete button inside the details modal for convenience! */}
           {selectedReq?.status === 'Active' && (
              <Button onClick={() => { handleCloseDetails(); handleOpenComplete(selectedReq); }} variant="contained" color="secondary">
                Mark as Completed
@@ -316,7 +405,7 @@ export default function OwnerDashboard() {
         </DialogActions>
       </Dialog>
 
-      {/* --- NEW: CONFIRM COMPLETION MODAL --- */}
+      {/* --- CONFIRM COMPLETION MODAL --- */}
       <Dialog open={confirmCompleteModal} onClose={handleCloseComplete} maxWidth="xs" fullWidth>
         <DialogTitle sx={{ fontWeight: 'bold', bgcolor: '#2e7d32', color: 'white', textAlign: 'center' }}>
           Confirm Return
@@ -335,6 +424,36 @@ export default function OwnerDashboard() {
           </Button>
           <Button onClick={executeCompleteRental} variant="contained" color="success">
             Yes, Complete Rental
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* --- REJECT REQUEST MODAL --- */}
+      <Dialog open={rejectModal} onClose={handleCloseReject} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 'bold', bgcolor: '#d32f2f', color: 'white', textAlign: 'center' }}>
+          Reject Request
+        </DialogTitle>
+        <DialogContent dividers sx={{ p: 3 }}>
+          <Typography variant="body2" color="text.secondary" gutterBottom>
+            Please provide a reason for rejecting this rental request. This note will be visible to the customer on their dashboard.
+          </Typography>
+          <TextField
+            fullWidth
+            multiline
+            rows={3}
+            variant="outlined"
+            placeholder="e.g., Inventory not available, missing requirements..."
+            value={rejectionReason}
+            onChange={(e) => setRejectionReason(e.target.value)}
+            sx={{ mt: 2 }}
+          />
+        </DialogContent>
+        <DialogActions sx={{ p: 2, justifyContent: 'center', gap: 2 }}>
+          <Button onClick={handleCloseReject} variant="outlined" color="inherit">
+            Cancel
+          </Button>
+          <Button onClick={executeRejectRental} variant="contained" color="error">
+            Reject Request
           </Button>
         </DialogActions>
       </Dialog>
