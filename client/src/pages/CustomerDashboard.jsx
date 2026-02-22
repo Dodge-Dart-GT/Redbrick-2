@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom'; 
-import { 
-  Box, Grid, Paper, Typography, Chip, Table, TableBody, TableCell, 
-  TableContainer, TableHead, TableRow, Button, List, ListItem, 
+import { useNavigate } from 'react-router-dom';
+import {
+  Box, Grid, Paper, Typography, Chip, Table, TableBody, TableCell,
+  TableContainer, TableHead, TableRow, Button, List, ListItem,
   ListItemText, ListItemIcon, TextField
 } from '@mui/material';
 import Navbar from '../components/Navbar';
-import ForkliftIcon from '@mui/icons-material/Forklift'; 
+import ForkliftIcon from '@mui/icons-material/Forklift';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import WarningIcon from '@mui/icons-material/Warning';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
@@ -111,7 +111,7 @@ export default function CustomerDashboard() {
                     {myRentals.length > 0 ? (
                       myRentals.map((row) => (
                         <TableRow key={row._id}>
-                          <TableCell>...{row._id.slice(-6)}</TableCell> {/* Short ID */}
+                          <TableCell>...{row._id.slice(-6)}</TableCell>
                           <TableCell>{row.forklift?.make} {row.forklift?.model}</TableCell>
                           <TableCell>{new Date(row.createdAt).toLocaleDateString()}</TableCell>
                           <TableCell>
@@ -144,9 +144,9 @@ export default function CustomerDashboard() {
                     <ListItemIcon sx={{ minWidth: 35 }}>
                       <CheckCircleIcon fontSize="small" color={req.status === 'Active' ? 'success' : 'info'} />
                     </ListItemIcon>
-                    <ListItemText 
-                      primary={`Request for ${req.forklift?.model} is ${req.status}`} 
-                      secondary={new Date(req.createdAt).toLocaleDateString()} 
+                    <ListItemText
+                      primary={`Request for ${req.forklift?.model} is ${req.status}`}
+                      secondary={new Date(req.createdAt).toLocaleDateString()}
                     />
                   </ListItem>
                 ))}
@@ -157,16 +157,16 @@ export default function CustomerDashboard() {
             {/* 4. FORKLIFT MODELS LINK */}
             <Paper elevation={3} sx={{ p: 3, textAlign: 'center' }}>
               <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>NEED ANOTHER FORKLIFT?</Typography>
-              <img 
-                src="https://plus.unsplash.com/premium_photo-1661962360662-7901306b3e34?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=60" 
-                alt="Forklift" 
-                style={{ width: '100%', borderRadius: 8, marginBottom: 16 }} 
+              <img
+                src="https://plus.unsplash.com/premium_photo-1661962360662-7901306b3e34?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=60"
+                alt="Forklift"
+                style={{ width: '100%', borderRadius: 8, marginBottom: 16 }}
               />
-              <Button 
-                variant="contained" 
-                sx={{ backgroundColor: '#242424' }} 
+              <Button
+                variant="contained"
+                sx={{ backgroundColor: '#242424' }}
                 fullWidth
-                onClick={() => navigate('/models')} 
+                onClick={() => navigate('/models')}
               >
                 Browse Models
               </Button>

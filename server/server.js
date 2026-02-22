@@ -1,17 +1,18 @@
 const express = require('express');
 const dotenv = require('dotenv');
+
+// 1. LOAD ENVIRONMENT VARIABLES FIRST!
+dotenv.config(); 
+
 const cors = require('cors');
 const connectDB = require('./config/db');
 
 // --- IMPORT ROUTES ---
 const authRoutes = require('./routes/authRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
-const forkliftRoutes = require('./routes/forkliftRoutes'); // New Inventory Route
-const rentalRoutes = require('./routes/rentalRoutes');     // New Request System Route
-const userRoutes = require('./routes/userRoutes'); 
-
-// 1. Load Environment Variables
-dotenv.config();
+const forkliftRoutes = require('./routes/forkliftRoutes'); 
+const rentalRoutes = require('./routes/rentalRoutes');    
+const userRoutes = require('./routes/userRoutes');
 
 // 2. Connect to Database
 connectDB();
@@ -27,14 +28,14 @@ app.use('/api/auth', authRoutes);         // Login & Register
 app.use('/api/upload', uploadRoutes);     // Image Uploads (Cloudinary)
 app.use('/api/forklifts', forkliftRoutes);// Manage Forklift Inventory
 app.use('/api/rentals', rentalRoutes);    // Manage Rental Requests
-app.use('/api/users', userRoutes); 
+app.use('/api/users', userRoutes);
 
 // Default Route (To check if server is working)
 app.get('/', (req, res) => {
   res.send('API is running...');
 });
 
-// 5. Error Handling Middleware (Optional but recommended)
+// 5. Error Handling Middleware
 app.use((err, req, res, next) => {
   const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
   res.status(statusCode);
