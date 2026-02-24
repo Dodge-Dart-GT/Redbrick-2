@@ -5,7 +5,7 @@ import {
   Box, Grid, Typography, TextField, Button, Card, CardMedia,
   CardContent, Chip, InputAdornment, List, ListItem, 
   ListItemIcon, ListItemText, Dialog, DialogTitle, DialogContent, 
-  DialogActions, IconButton
+  DialogActions, IconButton, Stack
 } from '@mui/material';
 import Navbar from '../components/Navbar';
 
@@ -16,8 +16,8 @@ import EvStationIcon from '@mui/icons-material/EvStation';
 import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import CloseIcon from '@mui/icons-material/Close';
-import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew'; // NEW: Left Arrow
-import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos'; // NEW: Right Arrow
+import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew'; 
+import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos'; 
 
 export default function ForkliftModels() {
   const navigate = useNavigate();
@@ -26,6 +26,7 @@ export default function ForkliftModels() {
   
   const [selectedModel, setSelectedModel] = useState(null);
   const [openModal, setOpenModal] = useState(false);
+  const [activeImageIndex, setActiveImageIndex] = useState(0); // NEW: Tracks which image is active
 
   useEffect(() => {
     const fetchModels = async () => {
@@ -46,6 +47,7 @@ export default function ForkliftModels() {
 
   const handleOpenModal = (model) => {
     setSelectedModel(model);
+    setActiveImageIndex(0); // Reset to first image when opening
     setOpenModal(true);
   };
 
@@ -54,18 +56,30 @@ export default function ForkliftModels() {
     setTimeout(() => setSelectedModel(null), 300);
   };
 
-  // --- CAROUSEL LOGIC ---
+  // Vehicle Navigation Logic
   const handleNext = () => {
     const currentIndex = filteredModels.findIndex(m => m._id === selectedModel._id);
-    const nextIndex = (currentIndex + 1) % filteredModels.length; // Loops back to start
+    const nextIndex = (currentIndex + 1) % filteredModels.length; 
     setSelectedModel(filteredModels[nextIndex]);
+    setActiveImageIndex(0); // Reset image index for the new vehicle
   };
 
   const handlePrev = () => {
     const currentIndex = filteredModels.findIndex(m => m._id === selectedModel._id);
-    const prevIndex = (currentIndex - 1 + filteredModels.length) % filteredModels.length; // Loops to end
+    const prevIndex = (currentIndex - 1 + filteredModels.length) % filteredModels.length; 
     setSelectedModel(filteredModels[prevIndex]);
+    setActiveImageIndex(0); // Reset image index for the new vehicle
   };
+
+  // Helper to safely get the array of images
+  const getModelImages = (model) => {
+    if (!model) return [];
+    if (model.images && model.images.length > 0) return model.images;
+    if (model.image) return [model.image];
+    return ['https://placehold.co/600x400?text=No+Vehicle+Image']; // Fixed fallback
+  };
+
+  const activeImagesArray = getModelImages(selectedModel);
 
   return (
     <Box sx={{ minHeight: '100vh', backgroundColor: '#f4f6f8' }}>
@@ -90,34 +104,38 @@ export default function ForkliftModels() {
         </Box>
 
         <Grid container spacing={4}>
-          {filteredModels.map((model) => (
-            <Grid item xs={12} sm={6} md={4} lg={3} key={model._id}>
-              <Card 
-                elevation={0}
-                onClick={() => handleOpenModal(model)}
-                sx={{ 
-                  borderRadius: 3, border: '1px solid #e0e0e0',
-                  transition: 'transform 0.2s, box-shadow 0.2s',
-                  cursor: 'pointer', height: '100%', display: 'flex', flexDirection: 'column',
-                  '&:hover': { transform: 'translateY(-6px)', boxShadow: '0 12px 24px rgba(0,0,0,0.1)', borderColor: '#1a237e' }
-                }}
-              >
-                <CardMedia
-                  component="img" height="220"
-                  image={model.image || 'https://via.placeholder.com/400x300?text=No+Image'}
-                  alt={`${model.make} ${model.model}`}
-                  sx={{ objectFit: 'cover' }}
-                />
-                <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                  <Typography variant="h6" fontWeight="800" sx={{ lineHeight: 1.2 }}>{model.make} {model.model}</Typography>
-                  <Box sx={{ mt: 'auto', pt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Chip label={model.status || 'Available'} size="small" color={model.status === 'Rented' ? 'error' : 'success'} sx={{ fontWeight: 'bold', borderRadius: 1 }} />
-                    <Typography variant="button" sx={{ color: '#1a237e', fontWeight: 'bold' }}>DETAILS</Typography>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
+          {filteredModels.map((model) => {
+            const displayImage = getModelImages(model)[0];
+
+            return (
+              <Grid item xs={12} sm={6} md={4} lg={3} key={model._id}>
+                <Card 
+                  elevation={0}
+                  onClick={() => handleOpenModal(model)}
+                  sx={{ 
+                    borderRadius: 3, border: '1px solid #e0e0e0',
+                    transition: 'transform 0.2s, box-shadow 0.2s',
+                    cursor: 'pointer', height: '100%', display: 'flex', flexDirection: 'column',
+                    '&:hover': { transform: 'translateY(-6px)', boxShadow: '0 12px 24px rgba(0,0,0,0.1)', borderColor: '#1a237e' }
+                  }}
+                >
+                  <CardMedia
+                    component="img" height="220"
+                    image={displayImage}
+                    alt={`${model.make} ${model.model}`}
+                    sx={{ objectFit: 'cover' }}
+                  />
+                  <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    <Typography variant="h6" fontWeight="800" sx={{ lineHeight: 1.2 }}>{model.make} {model.model}</Typography>
+                    <Box sx={{ mt: 'auto', pt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Chip label={model.status || 'Available'} size="small" color={model.status === 'Rented' ? 'error' : 'success'} sx={{ fontWeight: 'bold', borderRadius: 1 }} />
+                      <Typography variant="button" sx={{ color: '#1a237e', fontWeight: 'bold' }}>DETAILS</Typography>
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Grid>
+            )
+          })}
         </Grid>
       </Box>
 
@@ -131,28 +149,50 @@ export default function ForkliftModels() {
             </DialogTitle>
             
             <DialogContent dividers sx={{ p: 0 }}>
-              {/* IMAGE WRAPPER WITH CAROUSEL ARROWS */}
-              <Box sx={{ position: 'relative', bgcolor: '#f1f3f5', display: 'flex', justifyContent: 'center', borderBottom: '1px solid #e0e0e0' }}>
+              {/* IMAGE WRAPPER WITH CAROUSEL ARROWS FOR VEHICLES */}
+              <Box sx={{ position: 'relative', bgcolor: '#f1f3f5', display: 'flex', flexDirection: 'column', alignItems: 'center', borderBottom: '1px solid #e0e0e0' }}>
                 
                 <IconButton 
                   onClick={handlePrev} 
-                  sx={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', bgcolor: 'rgba(255,255,255,0.7)', '&:hover': { bgcolor: 'white' } }}
+                  sx={{ position: 'absolute', left: 8, top: 130, zIndex: 2, bgcolor: 'rgba(255,255,255,0.7)', '&:hover': { bgcolor: 'white' } }}
                 >
                   <ArrowBackIosNewIcon />
                 </IconButton>
 
+                {/* Main Active Image */}
                 <img 
-                  src={selectedModel.image || 'https://via.placeholder.com/500x300?text=No+Image'} 
+                  src={activeImagesArray[activeImageIndex]} 
                   alt={selectedModel.model} 
-                  style={{ width: '100%', maxHeight: '300px', objectFit: 'cover' }} 
+                  style={{ width: '100%', height: '300px', objectFit: 'cover', transition: 'opacity 0.3s ease-in-out' }} 
                 />
 
                 <IconButton 
                   onClick={handleNext} 
-                  sx={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', bgcolor: 'rgba(255,255,255,0.7)', '&:hover': { bgcolor: 'white' } }}
+                  sx={{ position: 'absolute', right: 8, top: 130, zIndex: 2, bgcolor: 'rgba(255,255,255,0.7)', '&:hover': { bgcolor: 'white' } }}
                 >
                   <ArrowForwardIosIcon />
                 </IconButton>
+
+                {/* THUMBNAIL GALLERY (Only shows if > 1 image) */}
+                {activeImagesArray.length > 1 && (
+                  <Stack direction="row" spacing={1} sx={{ p: 1.5, width: '100%', overflowX: 'auto', bgcolor: '#e0e0e0' }}>
+                    {activeImagesArray.map((imgUrl, index) => (
+                      <Box 
+                        key={index} 
+                        onClick={() => setActiveImageIndex(index)}
+                        sx={{ 
+                          width: 60, height: 45, flexShrink: 0, cursor: 'pointer',
+                          borderRadius: 1, overflow: 'hidden', 
+                          border: activeImageIndex === index ? '3px solid #1a237e' : '2px solid transparent',
+                          opacity: activeImageIndex === index ? 1 : 0.6,
+                          '&:hover': { opacity: 1 }
+                        }}
+                      >
+                        <img src={imgUrl} alt="thumb" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      </Box>
+                    ))}
+                  </Stack>
+                )}
               </Box>
 
               <Box sx={{ p: 3 }}>
@@ -183,7 +223,6 @@ export default function ForkliftModels() {
               <Button 
                 variant="contained" size="large" disabled={selectedModel.status === 'Rented'} startIcon={<CalendarMonthIcon />}
                 sx={{ bgcolor: '#1a237e', fontWeight: '800', px: 4, '&:hover': { bgcolor: '#0d1440' } }}
-                // --- THE FIX: PASSING THE DATA VIA STATE ---
                 onClick={() => navigate(`/book/${selectedModel._id}`, { state: { model: selectedModel } })} 
               >
                 {selectedModel.status === 'Rented' ? 'UNAVAILABLE' : 'BOOK MODEL'}
