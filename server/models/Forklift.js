@@ -11,7 +11,7 @@ const forkliftSchema = mongoose.Schema({
   fuel: { type: String },
   
   // Image (URL from Cloudinary)
-  image: { type: String },
+  images: [{ type: String }],
 
   // Status for the Owner to manage
   status: { 

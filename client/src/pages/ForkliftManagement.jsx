@@ -3,13 +3,12 @@ import axios from 'axios';
 import {
   Box, Grid, Paper, Typography, TextField, Button, Table,
   TableBody, TableCell, TableContainer, TableHead, TableRow,
-  IconButton, MenuItem, FormControlLabel, Switch, 
-  FormControl, InputLabel, Select
+  IconButton, MenuItem, FormControl, InputLabel, Select, Stack, Chip
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
-import LinkIcon from '@mui/icons-material/Link';
+import CancelIcon from '@mui/icons-material/Cancel';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 
@@ -19,12 +18,14 @@ export default function ForkliftManagement() {
   const navigate = useNavigate();
   const [forklifts, setForklifts] = useState([]);
   const [uploading, setUploading] = useState(false);
-  const [imageFile, setImageFile] = useState(null);
-  const [useImageUrl, setUseImageUrl] = useState(false); 
+  
+  // Multi-Image State
+  const [imageFiles, setImageFiles] = useState([]);
+  const [imagePreviews, setImagePreviews] = useState([]);
 
   const [formData, setFormData] = useState({
     make: '', model: '', capacity: '', power: '',
-    torque: '', fuel: '', image: ''
+    torque: '', fuel: ''
   });
 
   useEffect(() => {
@@ -44,19 +45,28 @@ export default function ForkliftManagement() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  // --- MULTI-IMAGE HANDLERS ---
   const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setImageFile(file);
-    }
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+
+    setImageFiles(prev => [...prev, ...files]);
+
+    // Generate local preview URLs
+    const newPreviews = files.map(file => URL.createObjectURL(file));
+    setImagePreviews(prev => [...prev, ...newPreviews]);
   };
 
-  // 1. HANDLE NEW FORKLIFT SUBMISSION
+  const removeImage = (indexToRemove) => {
+    setImageFiles(prev => prev.filter((_, index) => index !== indexToRemove));
+    setImagePreviews(prev => prev.filter((_, index) => index !== indexToRemove));
+  };
+
+  // --- SUBMIT LOGIC ---
   const handleSubmit = async (e) => {
     e.preventDefault();
     setUploading(true);
 
-    // Grab the token for security clearance
     const userInfo = JSON.parse(localStorage.getItem('userInfo'));
     if (!userInfo || !userInfo.token) {
         alert("Authorization error. Please log in again.");
@@ -66,40 +76,43 @@ export default function ForkliftManagement() {
     }
 
     try {
-      let finalImageUrl = formData.image;
+      let uploadedImageUrls = [];
 
-      // Handle Image Logic: Upload vs URL
-      if (!useImageUrl && imageFile) {
-        const uploadData = new FormData();
-        uploadData.append('image', imageFile);
-        
-        // --- FIX: ADDED AUTHORIZATION HEADER HERE ---
-        const uploadRes = await axios.post('http://localhost:5000/api/upload', uploadData, {
-          headers: { 
-            'Content-Type': 'multipart/form-data',
-            Authorization: `Bearer ${userInfo.token}` // Passes security check
-          }
-        });
-        finalImageUrl = uploadRes.data.image;
-      } else if (!useImageUrl && !imageFile && !formData.image) {
-         alert("Please select a file or enter an image URL.");
+      // 1. Upload each image sequentially to your existing upload route
+      if (imageFiles.length > 0) {
+        for (const file of imageFiles) {
+          const uploadData = new FormData();
+          uploadData.append('image', file);
+          
+          const uploadRes = await axios.post('http://localhost:5000/api/upload', uploadData, {
+            headers: { 
+              'Content-Type': 'multipart/form-data',
+              Authorization: `Bearer ${userInfo.token}`
+            }
+          });
+          uploadedImageUrls.push(uploadRes.data.image); // Collects the returned Cloudinary URLs
+        }
+      } else {
+         alert("Please select at least one image.");
          setUploading(false);
          return;
       }
 
-      const newForkliftData = { ...formData, image: finalImageUrl, status: 'Available' };
+      // 2. Save the forklift with the array of images
+      const newForkliftData = { ...formData, images: uploadedImageUrls, status: 'Available' };
 
-      // --- FIX: ADDED AUTHORIZATION HEADER HERE AS WELL ---
       await axios.post('http://localhost:5000/api/forklifts', newForkliftData, {
           headers: { Authorization: `Bearer ${userInfo.token}` }
       });
 
-      alert('Forklift Added Successfully!');
-      setFormData({ make: '', model: '', capacity: '', power: '', torque: '', fuel: '', image: '' });
-      setImageFile(null);
+      alert('Vehicle Added Successfully!');
       
-      // Reset the file input visually
+      // Reset Form
+      setFormData({ make: '', model: '', capacity: '', power: '', torque: '', fuel: '' });
+      setImageFiles([]);
+      setImagePreviews([]);
       document.getElementById('raised-button-file').value = ""; 
+      
       fetchForklifts();
 
     } catch (error) {
@@ -110,13 +123,13 @@ export default function ForkliftManagement() {
     }
   };
 
-  // 2. HANDLE STATUS CHANGE
+  // --- DELETE & STATUS HANDLERS ---
   const handleStatusChange = async (id, newStatus) => {
     const userInfo = JSON.parse(localStorage.getItem('userInfo'));
     try {
       await axios.put(`http://localhost:5000/api/forklifts/${id}`, 
         { status: newStatus },
-        { headers: { Authorization: `Bearer ${userInfo.token}` } } // Added Security
+        { headers: { Authorization: `Bearer ${userInfo.token}` } }
       );
       setForklifts(prev => prev.map(f => f._id === id ? { ...f, status: newStatus } : f));
     } catch (error) {
@@ -125,13 +138,12 @@ export default function ForkliftManagement() {
     }
   };
 
-  // 3. DELETE FORKLIFT
   const handleDelete = async (id) => {
     const userInfo = JSON.parse(localStorage.getItem('userInfo'));
     if (window.confirm("Are you sure you want to remove this forklift?")) {
       try {
         await axios.delete(`http://localhost:5000/api/forklifts/${id}`, {
-            headers: { Authorization: `Bearer ${userInfo.token}` } // Added Security
+            headers: { Authorization: `Bearer ${userInfo.token}` }
         });
         fetchForklifts();
       } catch (error) {
@@ -146,7 +158,6 @@ export default function ForkliftManagement() {
 
       <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: 1400, mx: 'auto' }}>
         
-        {/* HEADER */}
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
           <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/owner-dashboard')} sx={{ mr: 2, fontWeight: 'bold' }}>
             Back
@@ -160,59 +171,75 @@ export default function ForkliftManagement() {
 
           {/* --- LEFT COLUMN: ADD NEW FORM --- */}
           <Grid item xs={12} md={4}>
-            <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: '1px solid #e0e0e0' }}>
+            <Paper elevation={0} sx={{ p: 4, borderRadius: 3, border: '1px solid #e0e0e0' }}>
               <Typography variant="h6" sx={{ fontWeight: '800', mb: 3, color: '#1a237e', borderBottom: '2px solid #eee', pb: 1 }}>
                 ADD NEW VEHICLE
               </Typography>
 
               <form onSubmit={handleSubmit}>
-                <Grid container spacing={2}>
-                  <Grid item xs={6}><TextField fullWidth size="small" label="Make" name="make" value={formData.make} onChange={handleChange} required /></Grid>
-                  <Grid item xs={6}><TextField fullWidth size="small" label="Model" name="model" value={formData.model} onChange={handleChange} required /></Grid>
-
-                  <Grid item xs={6}><TextField fullWidth size="small" label="Capacity" name="capacity" value={formData.capacity} onChange={handleChange} /></Grid>
-                  <Grid item xs={6}><TextField fullWidth size="small" label="Power" name="power" value={formData.power} onChange={handleChange} /></Grid>
-
-                  <Grid item xs={6}><TextField fullWidth size="small" label="Torque" name="torque" value={formData.torque} onChange={handleChange} /></Grid>
+                {/* Replaced Grid with Stack to completely fix the squished layout bug */}
+                <Stack spacing={2.5}>
                   
-                  <Grid item xs={6}>
+                  <Stack direction="row" spacing={2}>
+                    <TextField fullWidth size="small" label="Make" name="make" value={formData.make} onChange={handleChange} required />
+                    <TextField fullWidth size="small" label="Model" name="model" value={formData.model} onChange={handleChange} required />
+                  </Stack>
+
+                  <Stack direction="row" spacing={2}>
+                    <TextField fullWidth size="small" label="Capacity" name="capacity" value={formData.capacity} onChange={handleChange} />
+                    <TextField fullWidth size="small" label="Power" name="power" value={formData.power} onChange={handleChange} />
+                  </Stack>
+
+                  <Stack direction="row" spacing={2}>
+                    <TextField fullWidth size="small" label="Torque" name="torque" value={formData.torque} onChange={handleChange} />
                     <FormControl fullWidth size="small" required>
-                      <InputLabel id="fuel-label">Fuel Type</InputLabel>
-                      <Select labelId="fuel-label" name="fuel" value={formData.fuel} label="Fuel Type" onChange={handleChange}>
+                      <InputLabel>Fuel Type</InputLabel>
+                      <Select name="fuel" value={formData.fuel} label="Fuel Type" onChange={handleChange}>
                         {fuelOptions.map((option) => (<MenuItem key={option} value={option}>{option}</MenuItem>))}
                       </Select>
                     </FormControl>
-                  </Grid>
+                  </Stack>
 
-                  {/* IMAGE UPLOAD SECTION */}
-                  <Grid item xs={12}>
-                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1, mt: 1 }}>
-                       <FormControlLabel
-                          control={<Switch checked={useImageUrl} onChange={() => setUseImageUrl(!useImageUrl)} size="small" />}
-                          label={<Typography variant="caption" fontWeight="bold">Use Image URL</Typography>}
-                       />
-                    </Box>
+                  {/* MULTI-IMAGE UPLOAD & PREVIEW SECTION */}
+                  <Box sx={{ border: '2px dashed #ccc', borderRadius: 2, p: 2, textAlign: 'center', bgcolor: '#fafafa', mt: 1 }}>
+                    <input 
+                      accept="image/*" 
+                      style={{ display: 'none' }} 
+                      id="raised-button-file" 
+                      multiple // Allows selecting multiple files
+                      type="file" 
+                      onChange={handleFileChange} 
+                    />
+                    <label htmlFor="raised-button-file">
+                      <Button variant="contained" component="span" startIcon={<CloudUploadIcon />} sx={{ bgcolor: '#455a64', '&:hover': { bgcolor: '#263238' } }}>
+                        SELECT IMAGES
+                      </Button>
+                    </label>
 
-                    {useImageUrl ? (
-                      <TextField fullWidth size="small" label="Paste Image URL" name="image" value={formData.image} onChange={handleChange} placeholder="https://..." InputProps={{ startAdornment: <LinkIcon color="action" sx={{ mr: 1 }} /> }} />
-                    ) : (
-                      <Box sx={{ border: '1px dashed #ccc', borderRadius: 2, p: 2, textAlign: 'center', bgcolor: '#f9f9f9' }}>
-                        <input accept="image/*" style={{ display: 'none' }} id="raised-button-file" type="file" onChange={handleFileChange} />
-                        <label htmlFor="raised-button-file">
-                          <Button variant="outlined" component="span" fullWidth startIcon={<CloudUploadIcon />} sx={{ textTransform: 'none', borderColor: '#ccc', color: '#555', bgcolor: 'white' }}>
-                            {imageFile ? imageFile.name : "Choose File..."}
-                          </Button>
-                        </label>
+                    {/* Previews */}
+                    {imagePreviews.length > 0 && (
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 2, justifyContent: 'center' }}>
+                        {imagePreviews.map((url, index) => (
+                          <Box key={index} sx={{ position: 'relative', width: 60, height: 60 }}>
+                            <img src={url} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 6, border: '1px solid #ddd' }} />
+                            <IconButton 
+                              size="small" 
+                              onClick={() => removeImage(index)}
+                              sx={{ position: 'absolute', top: -10, right: -10, bgcolor: 'white', color: 'error.main', p: 0.2, '&:hover': { bgcolor: '#ffebee' } }}
+                            >
+                              <CancelIcon fontSize="small" />
+                            </IconButton>
+                          </Box>
+                        ))}
                       </Box>
                     )}
-                  </Grid>
+                  </Box>
 
-                  <Grid item xs={12} sx={{ mt: 2 }}>
-                    <Button type="submit" variant="contained" fullWidth disabled={uploading} sx={{ bgcolor: '#1a237e', fontWeight: 'bold', py: 1.5, '&:hover': { bgcolor: '#0d1440' } }}>
-                      {uploading ? 'UPLOADING...' : 'ADD TO INVENTORY'}
-                    </Button>
-                  </Grid>
-                </Grid>
+                  <Button type="submit" variant="contained" fullWidth disabled={uploading} sx={{ bgcolor: '#1a237e', fontWeight: 'bold', py: 1.5, mt: 1, '&:hover': { bgcolor: '#0d1440' } }}>
+                    {uploading ? 'PROCESSING UPLOADS...' : 'ADD TO INVENTORY'}
+                  </Button>
+                  
+                </Stack>
               </form>
             </Paper>
           </Grid>
@@ -234,10 +261,21 @@ export default function ForkliftManagement() {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {forklifts.map((forklift) => (
+                    {forklifts.map((forklift) => {
+                      // Backward compatibility check: Uses the first image in the array, OR falls back to the old string format
+                      const displayImage = forklift.images && forklift.images.length > 0 
+                        ? forklift.images[0] 
+                        : (forklift.image || 'https://via.placeholder.com/60');
+
+                      return (
                       <TableRow key={forklift._id} hover>
                         <TableCell>
-                          <img src={forklift.image || 'https://via.placeholder.com/60'} alt="forklift" style={{ width: 60, height: 60, borderRadius: 8, objectFit: 'cover', border: '1px solid #eee' }} />
+                          <Box sx={{ position: 'relative', display: 'inline-block' }}>
+                            <img src={displayImage} alt="forklift" style={{ width: 60, height: 60, borderRadius: 8, objectFit: 'cover', border: '1px solid #eee' }} />
+                            {forklift.images && forklift.images.length > 1 && (
+                              <Chip size="small" label={`+${forklift.images.length - 1}`} sx={{ position: 'absolute', bottom: -8, right: -8, height: 18, fontSize: '0.65rem', fontWeight: 'bold', bgcolor: '#1a237e', color: 'white' }} />
+                            )}
+                          </Box>
                         </TableCell>
                         <TableCell>
                           <Typography variant="body2" fontWeight="bold">{forklift.make}</Typography>
@@ -274,7 +312,7 @@ export default function ForkliftManagement() {
                           </IconButton>
                         </TableCell>
                       </TableRow>
-                    ))}
+                    )})}
                     {forklifts.length === 0 && (
                       <TableRow><TableCell colSpan={5} align="center" sx={{ py: 4 }}>No vehicles in inventory.</TableCell></TableRow>
                     )}
