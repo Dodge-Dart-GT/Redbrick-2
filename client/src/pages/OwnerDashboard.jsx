@@ -5,9 +5,11 @@ import {
   Box, Grid, Paper, Typography, Chip, Table, TableBody, TableCell, 
   TableContainer, TableHead, TableRow, IconButton, Tooltip, List, ListItem, 
   ListItemIcon, ListItemText, Button, Dialog, DialogTitle, DialogContent, 
-  DialogActions, Divider, TextField, Pagination // <-- NEW IMPORTS
+  DialogActions, Divider, TextField, Pagination, Avatar 
 } from '@mui/material';
 import Navbar from '../components/Navbar';
+
+// Icons
 import ForkliftIcon from '@mui/icons-material/Forklift'; 
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
@@ -16,11 +18,13 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import PersonIcon from '@mui/icons-material/Person';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import DoneAllIcon from '@mui/icons-material/DoneAll';
+import AssignmentIcon from '@mui/icons-material/Assignment';
+import WarningIcon from '@mui/icons-material/Warning';
 
 export default function OwnerDashboard() {
   const navigate = useNavigate();
   const [requests, setRequests] = useState([]);
-  const [stats, setStats] = useState({ requests: 0 });
+  const [stats, setStats] = useState({ pending: 0, active: 0, completed: 0, total: 0 });
   const [userRole, setUserRole] = useState('');
   
   // View Details Modal State
@@ -36,7 +40,7 @@ export default function OwnerDashboard() {
   const [rentalToReject, setRentalToReject] = useState(null);
   const [rejectionReason, setRejectionReason] = useState('');
 
-  // --- NEW: PAGINATION & SEARCH STATE ---
+  // Pagination & Search State
   const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const ITEMS_PER_PAGE = 10;
@@ -48,15 +52,21 @@ export default function OwnerDashboard() {
   }, []);
 
   const fetchData = async () => {
+    const userInfo = JSON.parse(localStorage.getItem('userInfo'));
     try {
-      const requestRes = await axios.get('http://localhost:5000/api/rentals/all');
+      const { data } = await axios.get('http://localhost:5000/api/rentals/all', {
+        headers: { Authorization: `Bearer ${userInfo?.token}` }
+      });
       
-      // Sort so the newest requests are always at the top
-      const sortedData = requestRes.data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-      
+      const sortedData = data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
       setRequests(sortedData);
-      const pendingCount = sortedData.filter(r => r.status === 'Pending').length;
-      setStats({ requests: pendingCount });
+      
+      setStats({
+        pending: sortedData.filter(r => r.status === 'Pending').length,
+        active: sortedData.filter(r => r.status === 'Active').length,
+        completed: sortedData.filter(r => r.status === 'Completed').length,
+        total: sortedData.length
+      });
     } catch (error) {
       console.error("Error fetching data", error);
     }
@@ -65,23 +75,17 @@ export default function OwnerDashboard() {
   const handleAccept = async (id) => {
     try {
       await axios.put(`http://localhost:5000/api/rentals/${id}`, { status: 'Active' });
-      alert("Agreement Accepted! The forklift is now marked as Rented.");
       fetchData();
     } catch (error) {
       alert("Error updating status");
     }
   };
 
-  // --- REJECTION MODAL HANDLERS ---
+  // Rejection Logic
   const handleOpenReject = (id) => {
     setRentalToReject(id);
     setRejectionReason(''); 
     setRejectModal(true);
-  };
-
-  const handleCloseReject = () => {
-    setRejectModal(false);
-    setRentalToReject(null);
   };
 
   const executeRejectRental = async () => {
@@ -91,39 +95,22 @@ export default function OwnerDashboard() {
         rejectionReason: rejectionReason || 'Declined by Administrator.' 
       });
       fetchData();
-      handleCloseReject();
+      setRejectModal(false);
     } catch (error) {
       alert("Error updating status");
     }
   };
 
-  // --- View Details Handlers ---
-  const handleOpenDetails = (req) => {
-    setSelectedReq(req);
-    setOpenModal(true);
-  };
-
-  const handleCloseDetails = () => {
-    setOpenModal(false);
-    setSelectedReq(null);
-  };
-
-  // --- Completion Handlers ---
+  // Completion Logic
   const handleOpenComplete = (req) => {
     setRentalToComplete(req);
     setConfirmCompleteModal(true);
   };
 
-  const handleCloseComplete = () => {
-    setConfirmCompleteModal(false);
-    setRentalToComplete(null);
-  };
-
   const executeCompleteRental = async () => {
     try {
       await axios.put(`http://localhost:5000/api/rentals/${rentalToComplete._id}`, { status: 'Completed' });
-      alert("Rental Completed! The forklift is now available in your inventory.");
-      handleCloseComplete();
+      setConfirmCompleteModal(false);
       fetchData();
     } catch (error) {
       alert("Error updating status");
@@ -133,7 +120,7 @@ export default function OwnerDashboard() {
   const getStatusColor = (status) => {
     switch(status) {
       case 'Active': return 'success';
-      case 'Pending': return 'info';
+      case 'Pending': return 'warning';
       case 'Rejected': return 'error';
       case 'Completed': return 'default';
       default: return 'default';
@@ -146,194 +133,176 @@ export default function OwnerDashboard() {
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   };
 
-  // --- NEW: FILTER & PAGINATION LOGIC ---
+  // Search & Pagination Logic
   const filteredRequests = requests.filter(r => {
     const searchLower = searchTerm.toLowerCase();
-    const customerName = `${r.user?.firstName} ${r.user?.lastName}`.toLowerCase();
-    const modelName = r.forklift?.model?.toLowerCase() || "";
-    const refId = r._id.toLowerCase();
-    
-    return customerName.includes(searchLower) || 
-           modelName.includes(searchLower) || 
-           refId.includes(searchLower);
+    return (
+      (`${r.user?.firstName} ${r.user?.lastName}`).toLowerCase().includes(searchLower) || 
+      (r.forklift?.model || "").toLowerCase().includes(searchLower) || 
+      r._id.toLowerCase().includes(searchLower)
+    );
   });
 
   const pageCount = Math.ceil(filteredRequests.length / ITEMS_PER_PAGE);
   const displayedRequests = filteredRequests.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
 
-  const handleSearch = (e) => {
-    setSearchTerm(e.target.value);
-    setPage(1); // Reset to page 1 when searching
-  };
-
   return (
-    <Box sx={{ minHeight: '100vh', backgroundColor: '#f5f5f5' }}>
+    <Box sx={{ minHeight: '100vh', backgroundColor: '#f4f6f8' }}>
       <Navbar />
       
-      <Box sx={{ p: 4 }}>
+      <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: 1400, mx: 'auto' }}>
         
-        <Box sx={{ mb: 3, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
-          {userRole === 'owner' && (
-            <Button variant="contained" color="error" onClick={() => navigate('/users')} sx={{ fontWeight: 'bold' }}>
-              MANAGE ACCOUNTS
+        {/* HEADER & ADMIN ACTIONS */}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4, flexWrap: 'wrap', gap: 2 }}>
+          <Typography variant="h4" fontWeight="900" sx={{ color: '#1a237e' }}>
+            OWNER COMMAND CENTER
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            {userRole === 'owner' && (
+              <Button variant="outlined" color="primary" onClick={() => navigate('/users')} sx={{ fontWeight: 'bold', borderWidth: 2 }}>
+                MANAGE ACCOUNTS
+              </Button>
+            )}
+            <Button variant="contained" sx={{ bgcolor: '#1a237e', fontWeight: 'bold', '&:hover': { bgcolor: '#0d1440' } }} onClick={() => navigate('/inventory')}>
+              MANAGE FLEET
             </Button>
-          )}
-          <Button variant="contained" color="secondary" onClick={() => navigate('/inventory')} sx={{ fontWeight: 'bold' }}>
-            MANAGE FLEET
-          </Button>
+          </Box>
         </Box>
 
-        <Grid container spacing={3}>
-          <Grid size={{ xs: 12, md: 8 }}>
-            
-            <Grid container spacing={2} sx={{ mb: 4 }}>
-              <Grid size={{ xs: 6, sm: 3 }}>
-                <Paper elevation={3} sx={{ p: 2, textAlign: 'center', borderTop: `4px solid #0288d1` }}>
-                  <NotificationsActiveIcon sx={{ color: '#0288d1' }} />
-                  <Typography variant="h4" fontWeight="bold">{stats.requests}</Typography>
-                  <Typography variant="body2">Pending</Typography>
-                </Paper>
-              </Grid>
-              <Grid size={{ xs: 6, sm: 3 }}>
-                <Paper elevation={3} sx={{ p: 2, textAlign: 'center', borderTop: `4px solid #2e7d32` }}>
-                   <ForkliftIcon sx={{ color: '#2e7d32' }} />
-                   <Typography variant="h4" fontWeight="bold">-</Typography>
-                   <Typography variant="body2">Active Fleet</Typography>
-                </Paper>
-              </Grid>
+        {/* 4 KPI CARDS */}
+        <Grid container spacing={2} sx={{ mb: 4 }}>
+          {[
+            { label: 'Pending Approval', val: stats.pending, col: '#ed6c02', icon: <NotificationsActiveIcon /> },
+            { label: 'Active Fleet', val: stats.active, col: '#2e7d32', icon: <ForkliftIcon /> },
+            { label: 'Completed', val: stats.completed, col: '#455a64', icon: <DoneAllIcon /> },
+            { label: 'Total Logs', val: stats.total, col: '#1a237e', icon: <AssignmentIcon /> },
+          ].map((kpi, i) => (
+            <Grid item xs={12} sm={6} md={3} key={i}>
+              <Paper elevation={0} sx={{ p: 2, borderRadius: 3, border: '1px solid #e0e0e0', display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Avatar sx={{ bgcolor: `${kpi.col}15`, color: kpi.col, width: 56, height: 56 }}>{kpi.icon}</Avatar>
+                <Box>
+                  <Typography variant="h4" sx={{ fontWeight: 900 }}>{kpi.val}</Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold', textTransform: 'uppercase' }}>{kpi.label}</Typography>
+                </Box>
+              </Paper>
             </Grid>
+          ))}
+        </Grid>
 
-            <Paper elevation={3} sx={{ p: 3 }}>
-              {/* --- NEW: SEARCH BAR IN HEADER --- */}
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="h5" sx={{ fontWeight: 'bold', fontFamily: 'Oswald' }}>
-                  RENTAL AGREEMENTS
-                </Typography>
+        {/* MAIN LAYOUT: Table (Left) + Recent Activity (Right) */}
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={8}>
+            <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: '1px solid #e0e0e0' }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
+                <Typography variant="h6" fontWeight="800">GLOBAL AGREEMENTS</Typography>
                 <TextField 
                   placeholder="Search Customer, Model, or ID..." 
                   size="small" 
-                  variant="outlined" 
-                  sx={{ width: 280 }} 
                   value={searchTerm}
-                  onChange={handleSearch}
+                  onChange={(e) => {setSearchTerm(e.target.value); setPage(1);}}
+                  sx={{ width: { xs: '100%', sm: 300 }, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                 />
               </Box>
               
               <TableContainer>
                 <Table>
-                  <TableHead sx={{ backgroundColor: '#eeeeee' }}>
+                  <TableHead sx={{ bgcolor: '#f1f3f5' }}>
                     <TableRow>
-                      <TableCell><strong>Customer</strong></TableCell>
-                      <TableCell><strong>Forklift</strong></TableCell>
-                      <TableCell><strong>Start Date</strong></TableCell>
-                      <TableCell><strong>End Date</strong></TableCell>
-                      <TableCell><strong>Status</strong></TableCell>
-                      <TableCell align="center"><strong>Actions</strong></TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>CUSTOMER</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>FORKLIFT</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>DATES</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>STATUS</TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 'bold' }}>ACTIONS</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {/* NEW: MAP OVER displayedRequests INSTEAD OF requests */}
-                    {displayedRequests.length > 0 ? (
-                      displayedRequests.map((row) => (
-                        <TableRow key={row._id}>
-                          <TableCell>{row.user?.firstName} {row.user?.lastName}</TableCell>
-                          <TableCell>{row.forklift?.model}</TableCell>
-                          <TableCell>{row.startDate ? new Date(row.startDate).toLocaleDateString() : 'N/A'}</TableCell>
-                          <TableCell>{row.endDate ? new Date(row.endDate).toLocaleDateString() : 'N/A'}</TableCell>
-                          <TableCell>
-                            <Chip label={row.status} color={getStatusColor(row.status)} size="small" />
-                          </TableCell>
-                          <TableCell align="center">
-                            <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
-                              
-                              <Tooltip title="View Details">
-                                <IconButton color="primary" onClick={() => handleOpenDetails(row)}>
-                                  <VisibilityIcon />
-                                </IconButton>
+                    {displayedRequests.length > 0 ? displayedRequests.map((row) => (
+                      <TableRow key={row._id} hover>
+                        <TableCell>
+                          <Typography variant="body2" fontWeight="bold">{row.user?.firstName} {row.user?.lastName}</Typography>
+                          <Typography variant="caption" color="text.secondary">#{row._id.slice(-6).toUpperCase()}</Typography>
+                        </TableCell>
+                        <TableCell fontWeight="600">{row.forklift?.model}</TableCell>
+                        <TableCell>
+                          <Typography variant="body2">{row.startDate ? new Date(row.startDate).toLocaleDateString() : 'N/A'}</Typography>
+                        </TableCell>
+                        <TableCell><Chip label={row.status} color={getStatusColor(row.status)} size="small" sx={{ fontWeight: 'bold' }} /></TableCell>
+                        <TableCell align="center">
+                          <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
+                            <Tooltip title="View Details">
+                              <IconButton color="primary" onClick={() => { setSelectedReq(row); setOpenModal(true); }}>
+                                <VisibilityIcon />
+                              </IconButton>
+                            </Tooltip>
+                            {row.status === 'Active' && (
+                              <Tooltip title="Mark as Completed">
+                                <IconButton color="secondary" onClick={() => handleOpenComplete(row)}><DoneAllIcon /></IconButton>
                               </Tooltip>
-
-                              {row.status === 'Active' && (
-                                <Tooltip title="Mark as Completed/Returned">
-                                  <IconButton color="secondary" onClick={() => handleOpenComplete(row)}>
-                                    <DoneAllIcon />
-                                  </IconButton>
+                            )}
+                            {row.status === 'Pending' && (
+                              <>
+                                <Tooltip title="Accept">
+                                  <IconButton color="success" onClick={() => handleAccept(row._id)}><CheckCircleIcon /></IconButton>
                                 </Tooltip>
-                              )}
-
-                              {row.status === 'Pending' && (
-                                <>
-                                  <Tooltip title="Accept">
-                                    <IconButton color="success" onClick={() => handleAccept(row._id)}>
-                                      <CheckCircleIcon />
-                                    </IconButton>
-                                  </Tooltip>
-                                  <Tooltip title="Reject">
-                                    <IconButton color="error" onClick={() => handleOpenReject(row._id)}>
-                                      <CancelIcon />
-                                    </IconButton>
-                                  </Tooltip>
-                                </>
-                              )}
-                            </Box>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={6} align="center">
-                          {searchTerm ? 'No rental agreements match your search.' : 'No rental agreements found.'}
+                                <Tooltip title="Reject">
+                                  <IconButton color="error" onClick={() => handleOpenReject(row._id)}><CancelIcon /></IconButton>
+                                </Tooltip>
+                              </>
+                            )}
+                          </Box>
                         </TableCell>
                       </TableRow>
+                    )) : (
+                      <TableRow><TableCell colSpan={5} align="center" sx={{ py: 3 }}>No matching records found.</TableCell></TableRow>
                     )}
                   </TableBody>
                 </Table>
               </TableContainer>
 
-              {/* --- NEW: PAGINATION CONTROLS --- */}
               {pageCount > 1 && (
                 <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
-                  <Pagination 
-                    count={pageCount} 
-                    page={page} 
-                    onChange={(e, value) => setPage(value)} 
-                    color="primary" 
-                    shape="rounded"
-                  />
+                  <Pagination count={pageCount} page={page} onChange={(e, v) => setPage(v)} color="primary" shape="rounded" />
                 </Box>
               )}
-
             </Paper>
           </Grid>
 
-          <Grid size={{ xs: 12, md: 4 }}>
-            <Paper elevation={3} sx={{ p: 3 }}>
-              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>RECENT ACTIVITY</Typography>
-              <List>
-                {requests.slice(0, 5).map((req, i) => (
-                  <ListItem key={i}>
-                    <ListItemIcon><CheckCircleIcon color="primary" /></ListItemIcon>
-                    <ListItemText primary={`Request: ${req.forklift?.model}`} secondary={req.user?.email} />
+          {/* SIDEBAR: RECENT ACTIVITY */}
+          <Grid item xs={12} md={4}>
+            <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: '1px solid #e0e0e0', height: '100%' }}>
+              <Typography variant="subtitle1" fontWeight="800" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <NotificationsActiveIcon color="warning" /> RECENT ACTIVITY
+              </Typography>
+              <List sx={{ pt: 0 }}>
+                {requests.slice(0, 7).map((req, i) => (
+                  <ListItem key={i} sx={{ px: 0, py: 1.5, borderBottom: '1px solid #f1f3f5' }}>
+                    <ListItemIcon sx={{ minWidth: 35 }}>
+                      <CheckCircleIcon color={req.status === 'Active' ? 'success' : req.status === 'Rejected' ? 'error' : 'action'} fontSize="small" />
+                    </ListItemIcon>
+                    <ListItemText 
+                      primary={`${req.forklift?.model} - ${req.status}`} 
+                      secondary={req.user?.email} 
+                      primaryTypographyProps={{ variant: 'body2', fontWeight: 'bold' }}
+                    />
                   </ListItem>
                 ))}
+                {requests.length === 0 && <Typography variant="caption">No recent activity.</Typography>}
               </List>
             </Paper>
           </Grid>
         </Grid>
       </Box>
 
-      {/* --- FULL DETAILS MODAL --- */}
-      <Dialog open={openModal} onClose={handleCloseDetails} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 'bold', bgcolor: '#1a237e', color: 'white' }}>
-          Agreement Details
-        </DialogTitle>
+      {/* --- MODAL 1: FULL DETAILS --- */}
+      <Dialog open={openModal} onClose={() => setOpenModal(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 'bold', bgcolor: '#1a237e', color: 'white' }}>Agreement Details</DialogTitle>
         <DialogContent dividers sx={{ p: 3 }}>
           {selectedReq && (
             <Grid container spacing={3}>
               <Grid item xs={12}>
-                <Typography variant="subtitle2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography variant="subtitle2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                   <PersonIcon fontSize="small" /> CUSTOMER INFORMATION
                 </Typography>
-                <Divider sx={{ mb: 2 }} />
                 <Typography><strong>Name:</strong> {selectedReq.user?.firstName} {selectedReq.user?.lastName}</Typography>
                 <Typography><strong>Email:</strong> {selectedReq.user?.email}</Typography>
                 <Typography><strong>Phone:</strong> {selectedReq.user?.phone || 'N/A'}</Typography>
@@ -341,44 +310,32 @@ export default function OwnerDashboard() {
               </Grid>
 
               <Grid item xs={12}>
-                <Typography variant="subtitle2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography variant="subtitle2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                   <ForkliftIcon fontSize="small" /> EQUIPMENT DETAILS
                 </Typography>
-                <Divider sx={{ mb: 2 }} />
                 <Typography><strong>Make/Model:</strong> {selectedReq.forklift?.make} {selectedReq.forklift?.model}</Typography>
-                <Typography><strong>Capacity:</strong> {selectedReq.forklift?.capacity || 'N/A'}</Typography>
-                <Typography><strong>Power Type:</strong> {selectedReq.forklift?.power || 'N/A'}</Typography>
+                <Typography><strong>Capacity / Power:</strong> {selectedReq.forklift?.capacity || 'N/A'} - {selectedReq.forklift?.power || 'N/A'}</Typography>
               </Grid>
 
               <Grid item xs={12}>
-                <Typography variant="subtitle2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography variant="subtitle2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                   <CalendarMonthIcon fontSize="small" /> RENTAL PERIOD
                 </Typography>
-                <Divider sx={{ mb: 2 }} />
-                <Typography><strong>Start Date:</strong> {selectedReq.startDate ? new Date(selectedReq.startDate).toLocaleDateString() : 'N/A'}</Typography>
-                <Typography><strong>Due Date:</strong> {selectedReq.endDate ? new Date(selectedReq.endDate).toLocaleDateString() : 'N/A'}</Typography>
+                <Typography><strong>Dates:</strong> {new Date(selectedReq.startDate).toLocaleDateString()} to {new Date(selectedReq.endDate).toLocaleDateString()}</Typography>
                 <Typography><strong>Total Duration:</strong> {calculateDays(selectedReq.startDate, selectedReq.endDate)} Days</Typography>
               </Grid>
 
               <Grid item xs={12}>
                 <Typography component="div" sx={{ display: 'flex', alignItems: 'center' }}>
-                  <strong>Current Status:</strong> 
-                  <Chip label={selectedReq.status} color={getStatusColor(selectedReq.status)} size="small" sx={{ ml: 1 }} />
-                </Typography>
-                <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
-                  Reference ID: {selectedReq._id}
+                  <strong>Current Status:</strong> <Chip label={selectedReq.status} color={getStatusColor(selectedReq.status)} size="small" sx={{ ml: 1, fontWeight: 'bold' }} />
                 </Typography>
               </Grid>
 
               {selectedReq.status === 'Rejected' && selectedReq.rejectionReason && (
                 <Grid item xs={12}>
-                  <Box sx={{ mt: 1, p: 2, bgcolor: '#ffebee', borderRadius: 2, border: '1px solid #ffcdd2' }}>
-                    <Typography variant="subtitle2" color="error.main" fontWeight="bold">
-                      Reason for Rejection:
-                    </Typography>
-                    <Typography variant="body2" color="error.dark">
-                      {selectedReq.rejectionReason}
-                    </Typography>
+                  <Box sx={{ p: 2, bgcolor: '#ffebee', borderRadius: 2, border: '1px solid #ffcdd2' }}>
+                    <Typography variant="subtitle2" color="error.main" fontWeight="bold">Reason for Rejection:</Typography>
+                    <Typography variant="body2" color="error.dark">{selectedReq.rejectionReason}</Typography>
                   </Box>
                 </Grid>
               )}
@@ -386,62 +343,39 @@ export default function OwnerDashboard() {
           )}
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
-          {selectedReq?.status === 'Pending' && (
-            <>
-              <Button onClick={() => { handleAccept(selectedReq._id); handleCloseDetails(); }} variant="contained" color="success">
-                Accept
-              </Button>
-              <Button onClick={() => { handleCloseDetails(); handleOpenReject(selectedReq._id); }} variant="outlined" color="error">
-                Reject
-              </Button>
-            </>
-          )}
-          {selectedReq?.status === 'Active' && (
-             <Button onClick={() => { handleCloseDetails(); handleOpenComplete(selectedReq); }} variant="contained" color="secondary">
-               Mark as Completed
-             </Button>
-          )}
-          <Button onClick={handleCloseDetails} sx={{ color: '#1a237e' }}>Close</Button>
+          <Button onClick={() => setOpenModal(false)} sx={{ fontWeight: 'bold', color: 'text.secondary' }}>Close</Button>
         </DialogActions>
       </Dialog>
 
-      {/* --- CONFIRM COMPLETION MODAL --- */}
-      <Dialog open={confirmCompleteModal} onClose={handleCloseComplete} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 'bold', bgcolor: '#2e7d32', color: 'white', textAlign: 'center' }}>
+      {/* --- MODAL 2: CONFIRM RETURN --- */}
+      <Dialog open={confirmCompleteModal} onClose={() => setConfirmCompleteModal(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 'bold', bgcolor: '#455a64', color: 'white', textAlign: 'center' }}>
           Confirm Return
         </DialogTitle>
         <DialogContent dividers sx={{ p: 3, textAlign: 'center' }}>
-          <Typography variant="h6" gutterBottom>
-            Has this forklift been returned?
-          </Typography>
+          <DoneAllIcon sx={{ fontSize: 60, color: '#455a64', mb: 2 }} />
+          <Typography variant="h6" fontWeight="bold" gutterBottom>Has this equipment been returned?</Typography>
           <Typography variant="body2" color="text.secondary">
-            Marking this agreement as <strong>Completed</strong> will automatically make the <strong>{rentalToComplete?.forklift?.model}</strong> available in your inventory for other customers to rent.
+            Marking this agreement as Completed will immediately return the <strong>{rentalToComplete?.forklift?.model}</strong> to the available inventory pool.
           </Typography>
         </DialogContent>
         <DialogActions sx={{ p: 2, justifyContent: 'center', gap: 2 }}>
-          <Button onClick={handleCloseComplete} variant="outlined" color="inherit">
-            Cancel
-          </Button>
-          <Button onClick={executeCompleteRental} variant="contained" color="success">
-            Yes, Complete Rental
-          </Button>
+          <Button onClick={() => setConfirmCompleteModal(false)} sx={{ fontWeight: 'bold' }}>Cancel</Button>
+          <Button onClick={executeCompleteRental} variant="contained" sx={{ bgcolor: '#455a64' }}>Complete Rental</Button>
         </DialogActions>
       </Dialog>
 
-      {/* --- REJECT REQUEST MODAL --- */}
-      <Dialog open={rejectModal} onClose={handleCloseReject} maxWidth="xs" fullWidth>
+      {/* --- MODAL 3: REJECT REQUEST --- */}
+      <Dialog open={rejectModal} onClose={() => setRejectModal(false)} maxWidth="xs" fullWidth>
         <DialogTitle sx={{ fontWeight: 'bold', bgcolor: '#d32f2f', color: 'white', textAlign: 'center' }}>
           Reject Request
         </DialogTitle>
         <DialogContent dividers sx={{ p: 3 }}>
           <Typography variant="body2" color="text.secondary" gutterBottom>
-            Please provide a reason for rejecting this rental request. This note will be visible to the customer on their dashboard.
+            Provide a reason for declining this request. This will be sent directly to the customer's dashboard.
           </Typography>
           <TextField
-            fullWidth
-            multiline
-            rows={3}
-            variant="outlined"
+            fullWidth multiline rows={3} variant="outlined"
             placeholder="e.g., Inventory not available, missing requirements..."
             value={rejectionReason}
             onChange={(e) => setRejectionReason(e.target.value)}
@@ -449,12 +383,8 @@ export default function OwnerDashboard() {
           />
         </DialogContent>
         <DialogActions sx={{ p: 2, justifyContent: 'center', gap: 2 }}>
-          <Button onClick={handleCloseReject} variant="outlined" color="inherit">
-            Cancel
-          </Button>
-          <Button onClick={executeRejectRental} variant="contained" color="error">
-            Reject Request
-          </Button>
+          <Button onClick={() => setRejectModal(false)} sx={{ fontWeight: 'bold' }}>Cancel</Button>
+          <Button onClick={executeRejectRental} variant="contained" color="error">Confirm Rejection</Button>
         </DialogActions>
       </Dialog>
 
