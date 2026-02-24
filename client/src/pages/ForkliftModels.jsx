@@ -1,233 +1,226 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios'; 
-import { 
-  Box, Grid, Paper, Typography, TextField, Button, 
-  Card, CardMedia, CardContent, CardActions, Pagination, Divider, Chip,
-  Snackbar, Alert // <-- NEW IMPORTS FOR POP-UPS
+import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
+import {
+  Box, Grid, Typography, TextField, Button, Card, CardMedia,
+  CardContent, Chip, InputAdornment, Divider, List, ListItem, 
+  ListItemIcon, ListItemText, Dialog, DialogTitle, DialogContent, 
+  DialogActions, IconButton
 } from '@mui/material';
 import Navbar from '../components/Navbar';
 
+// Icons
+import SearchIcon from '@mui/icons-material/Search';
+import BuildCircleIcon from '@mui/icons-material/BuildCircle';
+import EvStationIcon from '@mui/icons-material/EvStation';
+import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import CloseIcon from '@mui/icons-material/Close';
+
 export default function ForkliftModels() {
-  const [forklifts, setForklifts] = useState([]); 
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedForklift, setSelectedForklift] = useState(null);
-  const [page, setPage] = useState(1);
+  const navigate = useNavigate();
+  const [models, setModels] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
   
-  // Calendar Date States
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  
-  // NEW: UI Pop-up (Snackbar) State
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: '',
-    severity: 'info' // can be 'success', 'error', 'warning', 'info'
-  });
-  
-  const ITEMS_PER_PAGE = 6;
-  const today = new Date().toISOString().split('T')[0];
+  // Modal State
+  const [selectedModel, setSelectedModel] = useState(null);
+  const [openModal, setOpenModal] = useState(false);
 
   useEffect(() => {
-    const fetchForklifts = async () => {
+    const fetchModels = async () => {
       try {
         const { data } = await axios.get('http://localhost:5000/api/forklifts');
-        setForklifts(data);
+        setModels(data);
       } catch (error) {
-        console.error("Error fetching forklifts:", error);
+        console.error('Failed to fetch models', error);
       }
     };
-    fetchForklifts();
+    fetchModels();
   }, []);
 
-  // NEW: Function to close the pop-up
-  const handleCloseSnackbar = (event, reason) => {
-    if (reason === 'clickaway') return;
-    setSnackbar({ ...snackbar, open: false });
-  };
-
-  // Function to show the pop-up
-  const showMessage = (message, severity) => {
-    setSnackbar({ open: true, message, severity });
-  };
-
-  const handleRequest = async (forklift) => {
-    const userInfo = localStorage.getItem('userInfo') 
-      ? JSON.parse(localStorage.getItem('userInfo')) 
-      : null;
-    
-    if (!userInfo) {
-      showMessage("Please login to request a rental.", "warning");
-      return;
-    }
-
-    if (!startDate || !endDate) {
-      showMessage("Please select both a Start Date and an End Date.", "warning");
-      return;
-    }
-
-    if (new Date(endDate) <= new Date(startDate)) {
-      showMessage("End Date must be after the Start Date.", "error");
-      return;
-    }
-
-    try {
-      await axios.post('http://localhost:5000/api/rentals', {
-        userId: userInfo._id,
-        forkliftId: forklift._id,
-        startDate: startDate,
-        endDate: endDate
-      });
-      
-      showMessage(`Request sent successfully for ${startDate} to ${endDate}! Check your Dashboard.`, "success");
-      setStartDate('');
-      setEndDate('');
-    } catch (error) {
-      showMessage(error.response?.data?.message || "Request failed.", "error");
-    }
-  };
-
-  const filteredModels = forklifts.filter(f => 
-    f.model.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    f.make.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredModels = models.filter(m => 
+    m.make?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    m.model?.toLowerCase().includes(searchTerm.toLowerCase())
   );
-  
-  const pageCount = Math.ceil(filteredModels.length / ITEMS_PER_PAGE);
-  const displayedModels = filteredModels.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
 
-  const calculateDays = () => {
-    if (startDate && endDate) {
-      const start = new Date(startDate);
-      const end = new Date(endDate);
-      if (end > start) {
-        const diffTime = Math.abs(end - start);
-        return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      }
-    }
-    return 0;
+  const handleOpenModal = (model) => {
+    setSelectedModel(model);
+    setOpenModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setOpenModal(false);
+    // Add a slight delay before clearing the model so the closing animation stays smooth
+    setTimeout(() => setSelectedModel(null), 300);
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', backgroundColor: '#f5f5f5' }}>
+    <Box sx={{ minHeight: '100vh', backgroundColor: '#f4f6f8' }}>
       <Navbar />
-      <Box sx={{ p: 4 }}>
-        <Grid container spacing={3}>
-          
-          {/* LEFT: LIST */}
-          <Grid item xs={12} sm={8}>
-            <Paper elevation={3} sx={{ p: 3 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-                <Typography variant="h5" sx={{ fontWeight: 'bold', fontFamily: 'Oswald' }}>
-                  AVAILABLE MODELS ({filteredModels.length})
-                </Typography>
-                <TextField placeholder="Search..." size="small" onChange={(e) => setSearchTerm(e.target.value)} />
-              </Box>
+      
+      <Box sx={{ p: { xs: 2, md: 5 }, maxWidth: 1400, mx: 'auto' }}>
+        
+        {/* Header & Search */}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', mb: 4, flexWrap: 'wrap', gap: 2 }}>
+          <Box>
+            <Typography variant="h4" fontWeight="900" sx={{ color: '#1a237e', letterSpacing: '-0.5px' }}>
+              OUR FLEET
+            </Typography>
+            <Typography variant="body1" color="text.secondary">
+              Browse {filteredModels.length} available models for your next project.
+            </Typography>
+          </Box>
+          <TextField 
+            placeholder="Search make or model..." 
+            size="small"
+            variant="outlined"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            sx={{ width: { xs: '100%', sm: 300 }, bgcolor: 'white', borderRadius: 1 }}
+            InputProps={{
+              startAdornment: <InputAdornment position="start"><SearchIcon color="action" /></InputAdornment>
+            }}
+          />
+        </Box>
 
-              <Grid container spacing={2}>
-                {displayedModels.map((forklift) => (
-                  <Grid item xs={12} lg={4} sm={6} key={forklift._id}>
-                    <Card onClick={() => setSelectedForklift(forklift)}
-                      sx={{ cursor: 'pointer', border: selectedForklift?._id === forklift._id ? '3px solid #1a237e' : 'none' }}>
-                      <CardMedia component="img" height="140" image={forklift.image} />
-                      <CardContent sx={{ pb: 1 }}>
-                        <Typography variant="h6" fontWeight="bold">{forklift.make} {forklift.model}</Typography>
-                        <Chip 
-                          label={forklift.status} 
-                          size="small" 
-                          color={forklift.status === 'Available' ? 'success' : forklift.status === 'Maintenance' ? 'error' : 'warning'} 
-                          variant="outlined"
-                        />
-                      </CardContent>
-                      <CardActions>
-                         <Button size="small" sx={{color: '#1a237e'}}>VIEW SPECS</Button>
-                      </CardActions>
-                    </Card>
-                  </Grid>
-                ))}
-              </Grid>
-              {pageCount > 1 && <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center' }}><Pagination count={pageCount} onChange={(e, v) => setPage(v)} /></Box>}
-            </Paper>
-          </Grid>
-
-          {/* RIGHT: SPECS & CALENDAR */}
-          <Grid item xs={12} sm={4} sx={{ position: 'sticky', top: 20 }}>
-            <Paper elevation={10} sx={{ p: 3, borderTop: '6px solid #1a237e' }}>
-              <Typography variant="h6" fontWeight="bold" sx={{ mb: 3, color: '#1a237e' }}>SPECIFICATIONS & BOOKING</Typography>
-              
-              {selectedForklift ? (
-                <Box>
-                  <img src={selectedForklift.image} style={{ width: '100%', borderRadius: 8, maxHeight: 200, objectFit: 'cover' }} alt="Selected" />
-                  <Typography variant="h5" fontWeight="bold" sx={{ mt: 2 }}>{selectedForklift.make} {selectedForklift.model}</Typography>
-                  <Divider sx={{ my: 2 }} />
-                  
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                    <Typography><strong>Capacity:</strong> {selectedForklift.capacity}</Typography>
-                    <Typography><strong>Power:</strong> {selectedForklift.power}</Typography>
-                    <Typography><strong>Fuel:</strong> {selectedForklift.fuel}</Typography>
-                  </Box>
-
-                  <Box sx={{ mt: 3, p: 2, bgcolor: '#e3f2fd', borderRadius: 2 }}>
-                    <Typography variant="body2" fontWeight="bold" sx={{ mb: 2, textAlign: 'center' }}>Select Rental Dates</Typography>
-                    
-                    <TextField 
-                      fullWidth 
-                      type="date" 
-                      label="Start Date" 
-                      InputLabelProps={{ shrink: true }}
+        {/* FULL WIDTH GRID OF MODELS */}
+        <Grid container spacing={4}>
+          {filteredModels.map((model) => (
+            <Grid item xs={12} sm={6} md={4} lg={3} key={model._id}>
+              <Card 
+                elevation={0}
+                onClick={() => handleOpenModal(model)}
+                sx={{ 
+                  borderRadius: 3, 
+                  border: '1px solid #e0e0e0',
+                  transition: 'transform 0.2s, box-shadow 0.2s',
+                  cursor: 'pointer',
+                  height: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  '&:hover': {
+                    transform: 'translateY(-6px)',
+                    boxShadow: '0 12px 24px rgba(0,0,0,0.1)',
+                    borderColor: '#1a237e'
+                  }
+                }}
+              >
+                <CardMedia
+                  component="img"
+                  height="220"
+                  image={model.image || 'https://via.placeholder.com/400x300?text=No+Image'}
+                  alt={`${model.make} ${model.model}`}
+                  sx={{ objectFit: 'cover' }}
+                />
+                <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <Typography variant="h6" fontWeight="800" sx={{ lineHeight: 1.2 }}>
+                    {model.make} {model.model}
+                  </Typography>
+                  <Box sx={{ mt: 'auto', pt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Chip 
+                      label={model.status || 'Available'} 
                       size="small" 
-                      value={startDate}
-                      onChange={(e) => setStartDate(e.target.value)}
-                      inputProps={{ min: today }} 
-                      sx={{ mb: 2, bgcolor: 'white' }}
+                      color={model.status === 'Rented' ? 'error' : 'success'} 
+                      sx={{ fontWeight: 'bold', borderRadius: 1 }} 
                     />
-
-                    <TextField 
-                      fullWidth 
-                      type="date" 
-                      label="End Date" 
-                      InputLabelProps={{ shrink: true }}
-                      size="small" 
-                      value={endDate}
-                      onChange={(e) => setEndDate(e.target.value)}
-                      inputProps={{ min: startDate || today }} 
-                      sx={{ mb: 1, bgcolor: 'white' }}
-                    />
-                    
-                    {calculateDays() > 0 && (
-                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', textAlign: 'right', fontWeight: 'bold' }}>
-                        Total Duration: {calculateDays()} Day(s)
-                      </Typography>
-                    )}
+                    <Typography variant="button" sx={{ color: '#1a237e', fontWeight: 'bold' }}>
+                      DETAILS
+                    </Typography>
                   </Box>
-
-                  <Button 
-                    variant="contained" fullWidth size="large" sx={{ mt: 2, bgcolor: '#1a237e', fontWeight: 'bold' }}
-                    disabled={selectedForklift.status === 'Maintenance'}
-                    onClick={() => handleRequest(selectedForklift)}
-                  >
-                    {selectedForklift.status === 'Maintenance' ? 'IN MAINTENANCE' : 'REQUEST DATES'}
-                  </Button>
-                </Box>
-              ) : (
-                <Typography align="center" color="text.secondary" sx={{ py: 4 }}>Select a model to view specs and book.</Typography>
-              )}
-            </Paper>
-          </Grid>
-
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
         </Grid>
+        
+        {filteredModels.length === 0 && (
+          <Box sx={{ textAlign: 'center', p: 10 }}>
+            <Typography variant="h6" color="text.secondary">No models match your search criteria.</Typography>
+          </Box>
+        )}
       </Box>
 
-      {/* --- NEW: SNACKBAR UI POP-UP --- */}
-      <Snackbar 
-        open={snackbar.open} 
-        autoHideDuration={6000} 
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      {/* --- SPECIFICATIONS & BOOKING MODAL --- */}
+      <Dialog 
+        open={openModal} 
+        onClose={handleCloseModal} 
+        maxWidth="sm" 
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 3 } }}
       >
-        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%', fontSize: '1rem', fontWeight: 'bold' }}>
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+        {selectedModel && (
+          <>
+            <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: '#1a237e', color: 'white' }}>
+              <Typography variant="h6" fontWeight="bold">VEHICLE SPECIFICATIONS</Typography>
+              <IconButton onClick={handleCloseModal} sx={{ color: 'white' }}>
+                <CloseIcon />
+              </IconButton>
+            </DialogTitle>
+            
+            <DialogContent dividers sx={{ p: 0 }}>
+              {/* Controlled Image Header */}
+              <Box sx={{ bgcolor: '#f1f3f5', display: 'flex', justifyContent: 'center', borderBottom: '1px solid #e0e0e0' }}>
+                <img 
+                  src={selectedModel.image || 'https://via.placeholder.com/500x300?text=No+Image'} 
+                  alt={selectedModel.model} 
+                  style={{ width: '100%', maxHeight: '300px', objectFit: 'cover' }} 
+                />
+              </Box>
 
+              <Box sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                  <Box>
+                    <Typography variant="h5" fontWeight="900" color="#1a237e">
+                      {selectedModel.make} {selectedModel.model}
+                    </Typography>
+                  </Box>
+                  <Chip 
+                    label={selectedModel.status || 'Available'} 
+                    color={selectedModel.status === 'Rented' ? 'error' : 'success'} 
+                    sx={{ fontWeight: 'bold', borderRadius: 1 }} 
+                  />
+                </Box>
+
+                <List disablePadding>
+                  <ListItem disableGutters>
+                    <ListItemIcon sx={{ minWidth: 40 }}><BuildCircleIcon color="action" /></ListItemIcon>
+                    <ListItemText primary="Make & Model" secondary={`${selectedModel.make} ${selectedModel.model}`} />
+                  </ListItem>
+                  <ListItem disableGutters>
+                    <ListItemIcon sx={{ minWidth: 40 }}><FitnessCenterIcon color="action" /></ListItemIcon>
+                    <ListItemText primary="Lift Capacity" secondary={selectedModel.capacity || 'Standard / Unspecified'} />
+                  </ListItem>
+                  <ListItem disableGutters>
+                    <ListItemIcon sx={{ minWidth: 40 }}><EvStationIcon color="action" /></ListItemIcon>
+                    <ListItemText primary="Power Type" secondary={selectedModel.power || 'Electric / Gas'} />
+                  </ListItem>
+                </List>
+              </Box>
+            </DialogContent>
+
+            <DialogActions sx={{ p: 3, bgcolor: '#f8f9fa', borderTop: '1px solid #e0e0e0' }}>
+              <Button onClick={handleCloseModal} sx={{ fontWeight: 'bold', color: 'text.secondary', mr: 2 }}>
+                CANCEL
+              </Button>
+              <Button 
+                variant="contained" 
+                size="large"
+                disabled={selectedModel.status === 'Rented'}
+                startIcon={<CalendarMonthIcon />}
+                sx={{ 
+                  bgcolor: '#1a237e', 
+                  fontWeight: '800', 
+                  px: 4,
+                  '&:hover': { bgcolor: '#0d1440' }
+                }}
+                onClick={() => navigate(`/book/${selectedModel._id}`)} 
+              >
+                {selectedModel.status === 'Rented' ? 'UNAVAILABLE' : 'BOOK MODEL'}
+              </Button>
+            </DialogActions>
+          </>
+        )}
+      </Dialog>
     </Box>
   );
 }
