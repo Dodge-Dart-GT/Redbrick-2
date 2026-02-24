@@ -5,10 +5,10 @@ import {
   TableBody, TableCell, TableContainer, TableHead, TableRow,
   IconButton, MenuItem, FormControlLabel, Switch, 
   FormControl, InputLabel, Select, Stack, Chip,
-  Dialog, DialogTitle, DialogContent, DialogActions, Tooltip // <-- Added Dialog imports
+  Dialog, DialogTitle, DialogContent, DialogActions, Tooltip, Divider
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
-import EditIcon from '@mui/icons-material/Edit'; // <-- Added Edit Icon
+import EditIcon from '@mui/icons-material/Edit'; 
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import CancelIcon from '@mui/icons-material/Cancel';
@@ -150,8 +150,9 @@ export default function ForkliftManagement() {
 
     try {
       let finalImages = editFormData.images || [];
+      let finalImageUrl = editFormData.image || ''; // Capture the manually edited URL
 
-      // If new files were selected, upload them and replace the old array
+      // If new local files were selected, upload them and overwrite the old array/url
       if (editImageFiles.length > 0) {
         let uploadedImageUrls = [];
         for (const file of editImageFiles) {
@@ -163,9 +164,15 @@ export default function ForkliftManagement() {
           uploadedImageUrls.push(uploadRes.data.image);
         }
         finalImages = uploadedImageUrls;
+        finalImageUrl = uploadedImageUrls[0] || ''; // Sync the main image to the first uploaded one
       }
 
-      const updatedData = { ...editFormData, images: finalImages };
+      // Merge the updated text fields, URL, and image array
+      const updatedData = { 
+        ...editFormData, 
+        images: finalImages,
+        image: finalImageUrl 
+      };
 
       await axios.put(`http://localhost:5000/api/forklifts/${editFormData._id}`, updatedData, {
         headers: { Authorization: `Bearer ${userInfo.token}` }
@@ -381,15 +388,29 @@ export default function ForkliftManagement() {
                   </FormControl>
                 </Stack>
 
+                <Divider sx={{ my: 2 }}>IMAGE SETTINGS</Divider>
+
+                {/* THE FIX: ADDED IMAGE URL FIELD HERE */}
+                <TextField 
+                  fullWidth 
+                  size="small"
+                  label="Primary Image URL" 
+                  value={editFormData.image || ''} 
+                  onChange={(e) => setEditFormData({...editFormData, image: e.target.value})}
+                  helperText="Paste a direct link to update the main display image."
+                  InputProps={{ startAdornment: <LinkIcon sx={{ mr: 1, color: 'action.active' }} /> }}
+                  sx={{ mb: 2 }}
+                />
+
                 {/* Edit Images Section */}
                 <Box sx={{ border: '2px dashed #ccc', borderRadius: 2, p: 2, textAlign: 'center', bgcolor: '#fafafa' }}>
                   <Typography variant="body2" color="text.secondary" gutterBottom>
-                    Select new images to replace existing ones, or leave blank to keep current images.
+                    Or select local files to upload. This will overwrite the URL above.
                   </Typography>
                   <input accept="image/*" style={{ display: 'none' }} id="edit-button-file" multiple type="file" onChange={handleEditFileChange} />
                   <label htmlFor="edit-button-file">
                     <Button variant="contained" component="span" startIcon={<CloudUploadIcon />} sx={{ bgcolor: '#455a64', '&:hover': { bgcolor: '#263238' } }}>
-                      REPLACE IMAGES
+                      UPLOAD LOCAL FILES
                     </Button>
                   </label>
                   {editImagePreviews.length > 0 && (
