@@ -8,9 +8,11 @@ import CustomerDashboard from './pages/CustomerDashboard';
 import OwnerDashboard from './pages/OwnerDashboard';
 import ProfilePage from './pages/ProfilePage';
 import ForkliftModels from './pages/ForkliftModels';
-import BookingPage from './pages/BookingPage'; // <-- NEW BOOKING PAGE IMPORTED HERE
+import BookingPage from './pages/BookingPage'; 
 import UserManagement from './pages/UserManagement';
-// import ForkliftManagement from './pages/ForkliftManagement'; // Uncomment when ready
+
+// THE FIX: Uncommented this import!
+import ForkliftManagement from './pages/ForkliftManagement'; 
 
 function App() {
   return (
@@ -22,7 +24,6 @@ function App() {
           
           {/* Authentication */}
           <Route path="/login" element={<LoginPage />} />
-          {/* <Route path="/register" element={<RegisterPage />} /> */}
           
           {/* Main Dashboards */}
           <Route path="/dashboard" element={<CustomerDashboard />} />
@@ -31,14 +32,13 @@ function App() {
           {/* Application Features */}
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/models" element={<ForkliftModels />} />
-          
-          {/* --- NEW BOOKING ROUTE --- */}
-          {/* The ":id" tells React Router to expect a dynamic forklift ID in the URL */}
           <Route path="/book/:id" element={<BookingPage />} />
           
           {/* Owner/Admin Management Pages */}
           <Route path="/users" element={<UserManagement />} />
-          {/* <Route path="/inventory" element={<ForkliftManagement />} /> */}
+          
+          {/* THE FIX: Uncommented the inventory route! */}
+          <Route path="/inventory" element={<ForkliftManagement />} /> 
           
           {/* Fallback Route (Catches any typos in the URL and sends them back to login) */}
           <Route path="*" element={<Navigate to="/login" replace />} />

@@ -16,25 +16,22 @@ const registerUser = async (req, res) => {
   const { firstName, lastName, email, phone, address, password } = req.body;
 
   try {
-    // 1. Check if user exists
     const userExists = await User.findOne({ email });
     if (userExists) {
       return res.status(400).json({ message: 'User already exists' });
     }
 
-    // 2. Hash password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // 3. Create user (Now including ADDRESS)
     const user = await User.create({
       firstName,
       lastName,
       email,
       phone,
-      address, // <--- Added this line to fix the error
+      address, 
       password: hashedPassword,
-      role: 'user' // Default role
+      role: 'customer' // FIX #1: Changed from 'user' to 'customer' to match your Navbar
     });
 
     if (user) {
@@ -43,7 +40,7 @@ const registerUser = async (req, res) => {
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
-        role: user.role,
+        role: user.role.toLowerCase(), // Forces lowercase
         token: generateToken(user._id),
       });
     } else {
@@ -62,17 +59,15 @@ const loginUser = async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    // 1. Check for user email
     const user = await User.findOne({ email });
 
-    // 2. Check password
     if (user && (await bcrypt.compare(password, user.password))) {
       res.json({
         _id: user.id,
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
-        role: user.role,
+        role: user.role.toLowerCase(), // FIX #2: Forces "Owner" or "Admin" to become "owner" or "admin"
         token: generateToken(user._id),
       });
     } else {

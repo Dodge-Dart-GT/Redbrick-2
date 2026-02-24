@@ -49,7 +49,7 @@ export default function LoginPage() {
   // Form State
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState(''); // NEW STATE
+  const [confirmPassword, setConfirmPassword] = useState(''); 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
@@ -119,8 +119,9 @@ export default function LoginPage() {
         alert("Login Successful!");
         localStorage.setItem('userInfo', JSON.stringify(res.data));
         
+        // --- THE FIX: Routing matching App.jsx ---
         if (res.data.role === 'owner' || res.data.role === 'admin') {
-            navigate('/owner');      
+            navigate('/owner-dashboard');      
         } else {
             navigate('/dashboard'); 
         }
@@ -238,7 +239,7 @@ export default function LoginPage() {
             }}
           />
 
-          {/* NEW: CONFIRM PASSWORD FIELD */}
+          {/* CONFIRM PASSWORD FIELD */}
           {!isLogin && (
             <TextField 
               fullWidth 
@@ -276,7 +277,6 @@ export default function LoginPage() {
             fullWidth 
             variant="contained" 
             size="large"
-            // Button is disabled if: Passwords don't match OR Password is weak
             disabled={!isLogin && (!isPasswordValid || !doPasswordsMatch)}
             sx={{ mt: 3, mb: 2, fontWeight: 'bold', backgroundColor: '#1a237e' }}
           >

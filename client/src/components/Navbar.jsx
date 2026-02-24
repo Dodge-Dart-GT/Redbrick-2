@@ -5,26 +5,18 @@ import { useNavigate } from 'react-router-dom';
 
 export default function Navbar() {
   const navigate = useNavigate();
-  const [anchorEl, setAnchorEl] = useState(null); // Menu state
+  const [anchorEl, setAnchorEl] = useState(null);
 
   // Get User Info safely
   const userInfo = localStorage.getItem('userInfo') 
     ? JSON.parse(localStorage.getItem('userInfo')) 
     : null;
 
-  const role = userInfo?.role; // 'owner', 'admin', or 'user'
+  const role = userInfo?.role; // 'owner', 'admin', 'user', or 'customer'
 
-  // Open Menu
-  const handleMenu = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
+  const handleMenu = (event) => setAnchorEl(event.currentTarget);
+  const handleClose = () => setAnchorEl(null);
 
-  // Close Menu
-  const handleClose = () => {
-    setAnchorEl(null);
-  };
-
-  // Logout Logic
   const handleLogout = () => {
     localStorage.removeItem('userInfo');
     navigate('/login');
@@ -40,12 +32,11 @@ export default function Navbar() {
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           
-          {/* --- NAVIGATION LINKS BASED ON ROLE --- */}
-          
           {/* 1. MANAGEMENT LINKS (Owner & Admin) */}
           {(role === 'owner' || role === 'admin') && (
             <>
-              <Button color="inherit" onClick={() => navigate('/owner')}>Dashboard</Button>
+              {/* THE FIX: Changed from '/owner' to '/owner-dashboard' */}
+              <Button color="inherit" onClick={() => navigate('/owner-dashboard')}>Dashboard</Button>
               <Button color="inherit" onClick={() => navigate('/inventory')}>Fleet</Button>
             </>
           )}
@@ -55,8 +46,8 @@ export default function Navbar() {
              <Button color="inherit" onClick={() => navigate('/users')}>Users</Button>
           )}
 
-          {/* 3. CUSTOMER LINKS */}
-          {role === 'user' && (
+          {/* 3. CUSTOMER LINKS (Checking for both user and customer to be safe) */}
+          {(role === 'user' || role === 'customer') && (
              <>
                <Button color="inherit" onClick={() => navigate('/dashboard')}>Home</Button>
                <Button color="inherit" onClick={() => navigate('/models')}>Browse Models</Button>
@@ -66,31 +57,21 @@ export default function Navbar() {
           {/* --- USER PROFILE SECTION --- */}
           {userInfo ? (
             <Box sx={{ display: 'flex', alignItems: 'center', ml: 2 }}>
-                {/* User Greeting */}
                 <Typography variant="body2" sx={{ mr: 1, display: { xs: 'none', sm: 'block' } }}>
-                    Hello, <strong>{userInfo.firstName}</strong>
+                    Hello, <strong>{userInfo.firstName || role}</strong>
                 </Typography>
 
-                <IconButton
-                    size="large"
-                    onClick={handleMenu}
-                    color="inherit"
-                >
+                <IconButton size="large" onClick={handleMenu} color="inherit">
                     <AccountCircle />
                 </IconButton>
                 
-                <Menu
-                    anchorEl={anchorEl}
-                    open={Boolean(anchorEl)}
-                    onClose={handleClose}
-                >
+                <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleClose}>
                     <MenuItem onClick={() => { handleClose(); navigate('/profile'); }}>My Profile</MenuItem>
                     <Divider />
                     <MenuItem onClick={handleLogout} sx={{ color: 'error.main' }}>Logout</MenuItem>
                 </Menu>
             </Box>
           ) : (
-            // If not logged in
             <Button color="inherit" onClick={() => navigate('/login')}>Login</Button>
           )}
 
