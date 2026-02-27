@@ -4,11 +4,13 @@ import { useNavigate } from 'react-router-dom';
 import {
   Box, Grid, Paper, Typography, Chip, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, Button, List, ListItem,
-  ListItemText, ListItemIcon, TextField, IconButton, Tooltip,
+  ListItemText, ListItemIcon, TextField, IconButton,
   Dialog, DialogTitle, DialogContent, DialogActions, Divider,
-  Pagination, Avatar
+  Pagination, Avatar, Stack
 } from '@mui/material';
 import Navbar from '../components/Navbar';
+
+// Icons
 import ForkliftIcon from '@mui/icons-material/Forklift';
 import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
 import WarningIcon from '@mui/icons-material/Warning';
@@ -18,6 +20,7 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import InfoIcon from '@mui/icons-material/Info';
 import DoneAllIcon from '@mui/icons-material/DoneAll';
+import BuildCircleIcon from '@mui/icons-material/BuildCircle'; // <-- NEW ICON IMPORTED
 
 export default function CustomerDashboard() {
   const navigate = useNavigate();
@@ -31,7 +34,7 @@ export default function CustomerDashboard() {
   // Pagination & Search State
   const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
-  const ITEMS_PER_PAGE = 10;
+  const ITEMS_PER_PAGE = 5; 
 
   useEffect(() => {
     const fetchMyRentals = async () => {
@@ -39,8 +42,10 @@ export default function CustomerDashboard() {
       if (!userInfo) { navigate('/login'); return; }
 
       try {
-        const { data } = await axios.get(`http://localhost:5000/api/rentals/myrequests/${userInfo._id}`);
-        // Keep your newest-first sorting logic
+        const { data } = await axios.get(`http://localhost:5000/api/rentals/myrequests/${userInfo._id}`, {
+            headers: { Authorization: `Bearer ${userInfo.token}` }
+        });
+        
         const sortedData = data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
         setMyRentals(sortedData);
 
@@ -79,41 +84,40 @@ export default function CustomerDashboard() {
   const calculateDays = (start, end) => {
     if (!start || !end) return 0;
     const diffTime = Math.abs(new Date(end) - new Date(start));
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; 
   };
 
-  // Filter & Pagination Logic
   const filteredRentals = myRentals.filter(r => 
-    r.forklift?.model.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    r.forklift?.make.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    r._id.includes(searchTerm)
+    (r.forklift?.model || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+    (r.forklift?.make || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (r._id || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const pageCount = Math.ceil(filteredRentals.length / ITEMS_PER_PAGE);
+  const pageCount = Math.max(1, Math.ceil(filteredRentals.length / ITEMS_PER_PAGE));
   const displayedRentals = filteredRentals.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
 
   return (
-    <Box sx={{ minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
+    <Box sx={{ minHeight: '100vh', backgroundColor: '#f8f9fa', pb: 8 }}>
       <Navbar />
       
-      <Box sx={{ p: { xs: 2, md: 4 } }}>
-        <Grid container spacing={3}>
+      <Box sx={{ p: { xs: 2, md: 5 }, maxWidth: 1500, mx: 'auto' }}>
+        <Grid container spacing={4}>
           
           {/* --- KPI STATS --- */}
           <Grid item xs={12}>
-            <Grid container spacing={2}>
+            <Grid container spacing={3}>
               {[
-                { label: 'Requested', val: stats.requested, col: '#1976d2', icon: <ForkliftIcon /> },
-                { label: 'Active', val: stats.active, col: '#2e7d32', icon: <CheckCircleIcon /> },
-                { label: 'Completed', val: stats.completed, col: '#455a64', icon: <DoneAllIcon /> },
-                { label: 'Rejected', val: stats.due, col: '#d32f2f', icon: <WarningIcon /> },
+                { label: 'Pending Requests', val: stats.requested, col: '#1976d2', icon: <ForkliftIcon /> },
+                { label: 'Active Rentals', val: stats.active, col: '#2e7d32', icon: <CheckCircleIcon /> },
+                { label: 'Completed Jobs', val: stats.completed, col: '#455a64', icon: <DoneAllIcon /> },
+                { label: 'Rejected / Cancelled', val: stats.due, col: '#d32f2f', icon: <WarningIcon /> },
               ].map((kpi, i) => (
-                <Grid item key={i} xs={6} md={3}>
-                  <Paper elevation={0} sx={{ p: 2, borderRadius: 3, border: '1px solid #e0e0e0', display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Avatar sx={{ bgcolor: `${kpi.col}15`, color: kpi.col, width: 50, height: 50 }}>{kpi.icon}</Avatar>
+                <Grid item key={i} xs={12} sm={6} md={3}>
+                  <Paper elevation={0} sx={{ p: 3, borderRadius: 4, border: '1px solid #e0e0e0', display: 'flex', alignItems: 'center', gap: 3, transition: 'transform 0.2s', '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 8px 24px rgba(0,0,0,0.05)' } }}>
+                    <Avatar sx={{ bgcolor: `${kpi.col}15`, color: kpi.col, width: 60, height: 60 }}>{kpi.icon}</Avatar>
                     <Box>
-                      <Typography variant="h5" sx={{ fontWeight: 800 }}>{kpi.val}</Typography>
-                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold', textTransform: 'uppercase' }}>{kpi.label}</Typography>
+                      <Typography variant="h4" sx={{ fontWeight: 900 }}>{kpi.val}</Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 0.5 }}>{kpi.label}</Typography>
                     </Box>
                   </Paper>
                 </Grid>
@@ -123,47 +127,73 @@ export default function CustomerDashboard() {
 
           {/* --- MAIN TABLE SECTION --- */}
           <Grid item xs={12} md={8}>
-            <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: '1px solid #e0e0e0' }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                <Typography variant="h6" fontWeight="800">RENTAL AGREEMENTS</Typography>
+            <Paper elevation={0} sx={{ p: 4, borderRadius: 4, border: '1px solid #e0e0e0', height: '100%' }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4, flexWrap: 'wrap', gap: 2 }}>
+                <Typography variant="h5" fontWeight="900" color="#1a237e">RENTAL AGREEMENTS</Typography>
                 <TextField 
                   placeholder="Search Models or ID..." 
                   size="small" 
                   value={searchTerm} 
                   onChange={(e) => {setSearchTerm(e.target.value); setPage(1);}}
-                  sx={{ width: 250, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                  sx={{ width: { xs: '100%', sm: 300 }, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                 />
               </Box>
 
-              <TableContainer>
-                <Table sx={{ minWidth: 600 }}>
+              <TableContainer sx={{ minHeight: 400 }}>
+                <Table sx={{ minWidth: 700 }}>
                   <TableHead sx={{ bgcolor: '#f1f3f5' }}>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 'bold' }}>REF ID</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>FORKLIFT</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>RENT DATE</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold' }}>STATUS</TableCell>
-                      <TableCell align="center" sx={{ fontWeight: 'bold' }}>ACTIONS</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold', py: 2 }}>REF ID</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold', py: 2 }}>EQUIPMENT</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold', py: 2 }}>RENT DATE</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold', py: 2 }}>STATUS</TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 'bold', py: 2 }}>DETAILS</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {displayedRentals.length > 0 ? (
                       displayedRentals.map((row) => (
                         <TableRow key={row._id} hover>
-                          <TableCell sx={{ fontFamily: 'monospace' }}>#{row._id.slice(-6).toUpperCase()}</TableCell>
-                          <TableCell fontWeight="600">{row.forklift?.make} {row.forklift?.model}</TableCell>
-                          <TableCell>{new Date(row.createdAt).toLocaleDateString()}</TableCell>
-                          <TableCell><Chip label={row.status} color={getStatusColor(row.status)} size="small" sx={{ fontWeight: 'bold' }} /></TableCell>
-                          <TableCell align="center">
-                            <IconButton size="small" onClick={() => {setSelectedReq(row); setOpenModal(true);}}>
-                              <VisibilityIcon fontSize="small" color="primary"/>
+                          <TableCell sx={{ fontFamily: 'monospace', color: 'text.secondary', py: 2.5 }}>
+                            #{row._id.slice(-6).toUpperCase()}
+                          </TableCell>
+                          
+                          <TableCell sx={{ py: 2.5 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                <Avatar 
+                                    src={row.forklift?.images?.[0] || row.forklift?.image} 
+                                    variant="rounded" 
+                                    sx={{ width: 55, height: 55, border: '1px solid #eee' }}
+                                >
+                                    <ForkliftIcon />
+                                </Avatar>
+                                <Box>
+                                    <Typography variant="body1" fontWeight="bold">{row.forklift?.make || 'Unknown Make'}</Typography>
+                                    <Typography variant="body2" color="text.secondary">{row.forklift?.model || 'Vehicle Unavailable'}</Typography>
+                                </Box>
+                            </Box>
+                          </TableCell>
+
+                          <TableCell sx={{ py: 2.5, fontWeight: '500' }}>
+                              {new Date(row.startDate).toLocaleDateString()}
+                          </TableCell>
+                          
+                          <TableCell sx={{ py: 2.5 }}>
+                            <Chip label={row.status} color={getStatusColor(row.status)} sx={{ fontWeight: 'bold', px: 1 }} />
+                          </TableCell>
+                          
+                          <TableCell align="center" sx={{ py: 2.5 }}>
+                            <IconButton onClick={() => {setSelectedReq(row); setOpenModal(true);}} sx={{ bgcolor: '#f1f3f5', '&:hover': { bgcolor: '#e0e0e0' } }}>
+                              <VisibilityIcon color="primary"/>
                             </IconButton>
                           </TableCell>
                         </TableRow>
                       ))
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={5} align="center">No rentals found matching your search.</TableCell>
+                        <TableCell colSpan={5} align="center" sx={{ py: 8 }}>
+                            <Typography color="text.secondary" variant="h6">No rentals found matching your criteria.</Typography>
+                        </TableCell>
                       </TableRow>
                     )}
                   </TableBody>
@@ -171,8 +201,8 @@ export default function CustomerDashboard() {
               </TableContainer>
 
               {pageCount > 1 && (
-                <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
-                  <Pagination count={pageCount} page={page} onChange={(e, v) => setPage(v)} color="primary" shape="rounded" />
+                <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4, pt: 3, borderTop: '1px solid #eee' }}>
+                  <Pagination count={pageCount} page={page} onChange={(e, v) => setPage(v)} color="primary" size="large" shape="rounded" />
                 </Box>
               )}
             </Paper>
@@ -180,90 +210,154 @@ export default function CustomerDashboard() {
 
           {/* --- SIDEBAR --- */}
           <Grid item xs={12} md={4}>
-            {/* Scrollable Alerts */}
-            <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: '1px solid #e0e0e0', mb: 3 }}>
-              <Typography variant="subtitle1" fontWeight="800" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            
+            <Paper elevation={0} sx={{ p: 4, borderRadius: 4, border: '1px solid #e0e0e0', mb: 4 }}>
+              <Typography variant="h6" fontWeight="900" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#1a237e' }}>
                 <NotificationsActiveIcon color="warning" /> RECENT ALERTS
               </Typography>
+              <Divider sx={{ mb: 2 }} />
               <List sx={{ 
-                maxHeight: 320, 
+                maxHeight: 350, 
                 overflow: 'auto', 
-                '&::-webkit-scrollbar': { width: '4px' },
-                '&::-webkit-scrollbar-thumb': { backgroundColor: '#e0e0e0', borderRadius: '10px' }
+                '&::-webkit-scrollbar': { width: '6px' },
+                '&::-webkit-scrollbar-thumb': { backgroundColor: '#ccc', borderRadius: '10px' }
               }}>
                 {myRentals.slice(0, 8).map((req, i) => (
-                  <ListItem key={i} sx={{ px: 0, py: 1.5, borderBottom: '1px solid #f1f3f5' }}>
-                    <ListItemIcon sx={{ minWidth: 35 }}>{getAlertIcon(req.status)}</ListItemIcon>
+                  <ListItem key={i} sx={{ px: 0, py: 2, borderBottom: '1px solid #f1f3f5' }}>
+                    <ListItemIcon sx={{ minWidth: 40 }}>{getAlertIcon(req.status)}</ListItemIcon>
                     <ListItemText 
-                      primary={`Request for ${req.forklift?.model}`} 
+                      primary={`Request for ${req.forklift?.model || 'Vehicle'}`} 
                       secondary={`${req.status} - ${new Date(req.createdAt).toLocaleDateString()}`}
-                      primaryTypographyProps={{ variant: 'body2', fontWeight: 'bold' }}
-                      secondaryTypographyProps={{ variant: 'caption' }}
+                      primaryTypographyProps={{ variant: 'body1', fontWeight: 'bold' }}
+                      secondaryTypographyProps={{ variant: 'body2', mt: 0.5 }}
                     />
                   </ListItem>
                 ))}
+                {myRentals.length === 0 && <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>No recent alerts.</Typography>}
               </List>
             </Paper>
 
-            {/* Industrial CTA Card */}
-            <Paper elevation={0} sx={{ p: 3, borderRadius: 3, bgcolor: '#1a237e', color: 'white', textAlign: 'center' }}>
-              <Typography variant="h6" fontWeight="800">NEW RENTAL?</Typography>
-              <Typography variant="body2" sx={{ opacity: 0.8, mb: 2 }}>Explore our heavy-duty Gavril fleet.</Typography>
-              <Box sx={{ bgcolor: 'rgba(255,255,255,0.1)', p: 2, borderRadius: 2, mb: 2 }}>
-                 <ForkliftIcon sx={{ fontSize: 80, opacity: 0.9 }} />
+            <Paper elevation={0} sx={{ p: 5, borderRadius: 4, bgcolor: '#1a237e', color: 'white', textAlign: 'center' }}>
+              <Typography variant="h5" fontWeight="900" mb={1}>NEW PROJECT?</Typography>
+              <Typography variant="body1" sx={{ opacity: 0.8, mb: 4 }}>Explore our heavy-duty fleet to find the perfect equipment.</Typography>
+              <Box sx={{ bgcolor: 'rgba(255,255,255,0.1)', p: 3, borderRadius: '50%', mb: 4, display: 'inline-flex' }}>
+                 <ForkliftIcon sx={{ fontSize: 70, opacity: 0.9 }} />
               </Box>
-              <Button variant="contained" fullWidth sx={{ bgcolor: 'white', color: '#1a237e', fontWeight: 'bold', '&:hover': { bgcolor: '#f1f1f1' } }} onClick={() => navigate('/models')}>
-                BROWSE MODELS
+              <Button variant="contained" size="large" fullWidth sx={{ bgcolor: 'white', color: '#1a237e', fontWeight: 'bold', py: 1.5, '&:hover': { bgcolor: '#f1f1f1' } }} onClick={() => navigate('/models')}>
+                BROWSE CATALOG
               </Button>
             </Paper>
           </Grid>
         </Grid>
       </Box>
 
-      {/* --- AGREEMENT DETAILS MODAL --- */}
-      <Dialog open={openModal} onClose={() => setOpenModal(false)} fullWidth maxWidth="sm">
-        <DialogTitle sx={{ fontWeight: 'bold', bgcolor: '#1a237e', color: 'white' }}>Agreement Details</DialogTitle>
-        <DialogContent dividers sx={{ p: 3 }}>
+      {/* --- REDESIGNED AGREEMENT DETAILS MODAL WITH SPECS --- */}
+      <Dialog open={openModal} onClose={() => setOpenModal(false)} fullWidth maxWidth="md">
+        <DialogTitle sx={{ fontWeight: 'bold', bgcolor: '#1a237e', color: 'white', py: 2.5 }}>
+          AGREEMENT DETAILS
+        </DialogTitle>
+        <DialogContent dividers sx={{ p: { xs: 3, md: 5 }, bgcolor: '#f8f9fa' }}>
           {selectedReq && (
-            <Grid container spacing={3}>
-              <Grid item xs={12}>
-                <Typography variant="subtitle2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <ForkliftIcon fontSize="small" /> EQUIPMENT DETAILS
-                </Typography>
-                <Divider sx={{ mb: 1 }} />
-                <Typography><strong>Make/Model:</strong> {selectedReq.forklift?.make} {selectedReq.forklift?.model}</Typography>
+            <Grid container spacing={4}>
+              
+              {/* Header: Equipment & Status */}
+              <Grid item xs={12} md={8} sx={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                <Avatar 
+                    src={selectedReq.forklift?.images?.[0] || selectedReq.forklift?.image} 
+                    variant="rounded" 
+                    sx={{ width: 120, height: 120, border: '1px solid #e0e0e0', bgcolor: 'white', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}
+                >
+                    <ForkliftIcon sx={{ fontSize: 60 }} color="action" />
+                </Avatar>
+                <Box>
+                    <Typography variant="overline" color="text.secondary" fontWeight="900" letterSpacing={1.5}>
+                        EQUIPMENT REQUESTED
+                    </Typography>
+                    <Typography variant="h4" fontWeight="900" color="#1a237e" sx={{ mb: 1, mt: 0.5 }}>
+                        {selectedReq.forklift?.make || 'Unknown Make'} {selectedReq.forklift?.model || ''}
+                    </Typography>
+                    <Typography variant="caption" sx={{ display: 'inline-block', bgcolor: '#e0e0e0', color: '#616161', px: 1.5, py: 0.5, borderRadius: 1, fontWeight: 'bold' }}>
+                        Ref ID: #{selectedReq._id.toUpperCase()}
+                    </Typography>
+                </Box>
               </Grid>
 
-              <Grid item xs={12}>
-                <Typography variant="subtitle2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <CalendarMonthIcon fontSize="small" /> RENTAL PERIOD
-                </Typography>
-                <Divider sx={{ mb: 1 }} />
-                <Typography><strong>Dates:</strong> {new Date(selectedReq.startDate).toLocaleDateString()} to {new Date(selectedReq.endDate).toLocaleDateString()}</Typography>
-                <Typography><strong>Total:</strong> {calculateDays(selectedReq.startDate, selectedReq.endDate)} Days</Typography>
+              <Grid item xs={12} md={4} sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: { xs: 'flex-start', md: 'flex-end' } }}>
+                <Typography variant="subtitle2" color="text.secondary" fontWeight="bold" gutterBottom>
+                  CURRENT STATUS
+                </Typography> 
+                <Chip label={selectedReq.status} color={getStatusColor(selectedReq.status)} sx={{ fontWeight: 'bold', px: 3, py: 3, fontSize: '1.2rem', borderRadius: 2 }} />
               </Grid>
 
-              <Grid item xs={12}>
-                <Typography component="div" sx={{ display: 'flex', alignItems: 'center' }}>
-                  <strong>Status:</strong> <Chip label={selectedReq.status} color={getStatusColor(selectedReq.status)} size="small" sx={{ ml: 1, fontWeight: 'bold' }} />
+              <Grid item xs={12}><Divider /></Grid>
+
+              {/* TWO-COLUMN LAYOUT: Timeframe (Left) & Specifications (Right) */}
+              <Grid item xs={12} md={6}>
+                <Typography variant="subtitle1" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, fontWeight: 'bold' }}>
+                  <CalendarMonthIcon /> RENTAL TIMEFRAME
                 </Typography>
-                <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>Reference ID: {selectedReq._id}</Typography>
+                <Paper elevation={0} sx={{ p: 4, border: '1px solid #e0e0e0', borderRadius: 4, bgcolor: 'white', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                    <Stack direction="row" spacing={4} justifyContent="space-between">
+                        <Box>
+                            <Typography variant="caption" color="text.secondary" fontWeight="bold" textTransform="uppercase">Start Date</Typography>
+                            <Typography variant="h6" fontWeight="900">{new Date(selectedReq.startDate).toLocaleDateString()}</Typography>
+                        </Box>
+                        <Box textAlign="right">
+                            <Typography variant="caption" color="text.secondary" fontWeight="bold" textTransform="uppercase">End Date</Typography>
+                            <Typography variant="h6" fontWeight="900">{new Date(selectedReq.endDate).toLocaleDateString()}</Typography>
+                        </Box>
+                    </Stack>
+                    <Box sx={{ mt: 3, pt: 3, borderTop: '2px dashed #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Typography variant="body1" fontWeight="bold" color="text.secondary">Total Duration:</Typography>
+                        <Typography variant="h5" color="primary.main" fontWeight="900">{calculateDays(selectedReq.startDate, selectedReq.endDate)} Day(s)</Typography>
+                    </Box>
+                </Paper>
               </Grid>
 
-              {/* Keep your Rejection Reason Logic */}
+              {/* NEW: Vehicle Specifications Box */}
+              <Grid item xs={12} md={6}>
+                <Typography variant="subtitle1" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, fontWeight: 'bold' }}>
+                  <BuildCircleIcon /> VEHICLE SPECIFICATIONS
+                </Typography>
+                <Paper elevation={0} sx={{ p: 4, border: '1px solid #e0e0e0', borderRadius: 4, bgcolor: 'white', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                   <Grid container spacing={3}>
+                      <Grid item xs={6}>
+                          <Typography variant="caption" color="text.secondary" fontWeight="bold" textTransform="uppercase">Lift Capacity</Typography>
+                          <Typography variant="body1" fontWeight="bold">{selectedReq.forklift?.capacity || 'N/A'}</Typography>
+                      </Grid>
+                      <Grid item xs={6}>
+                          <Typography variant="caption" color="text.secondary" fontWeight="bold" textTransform="uppercase">Power Type</Typography>
+                          <Typography variant="body1" fontWeight="bold">{selectedReq.forklift?.power || 'N/A'}</Typography>
+                      </Grid>
+                      <Grid item xs={6}>
+                          <Typography variant="caption" color="text.secondary" fontWeight="bold" textTransform="uppercase">Torque Rating</Typography>
+                          <Typography variant="body1" fontWeight="bold">{selectedReq.forklift?.torque || 'N/A'}</Typography>
+                      </Grid>
+                      <Grid item xs={6}>
+                          <Typography variant="caption" color="text.secondary" fontWeight="bold" textTransform="uppercase">Fuel Option</Typography>
+                          <Typography variant="body1" fontWeight="bold">{selectedReq.forklift?.fuel || 'N/A'}</Typography>
+                      </Grid>
+                   </Grid>
+                </Paper>
+              </Grid>
+
+              {/* Rejection Details (Drops below if present) */}
               {selectedReq.status === 'Rejected' && selectedReq.rejectionReason && (
                 <Grid item xs={12}>
-                  <Box sx={{ mt: 1, p: 2, bgcolor: '#ffebee', borderRadius: 2, border: '1px solid #ffcdd2' }}>
-                    <Typography variant="subtitle2" color="error.main" fontWeight="bold">Reason for Rejection:</Typography>
-                    <Typography variant="body2" color="error.dark">{selectedReq.rejectionReason}</Typography>
+                  <Typography variant="subtitle1" color="error.main" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, mt: 2, fontWeight: 'bold' }}>
+                    <CancelIcon /> REJECTION DETAILS
+                  </Typography>
+                  <Box sx={{ p: 4, bgcolor: '#ffebee', borderRadius: 4, border: '1px solid #ffcdd2' }}>
+                      <Typography variant="body1" color="error.dark" fontWeight="500">{selectedReq.rejectionReason}</Typography>
                   </Box>
                 </Grid>
               )}
+
             </Grid>
           )}
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenModal(false)} sx={{ fontWeight: 'bold', color: '#1a237e' }}>Close</Button>
+        <DialogActions sx={{ p: 3, bgcolor: '#f1f3f5' }}>
+          <Button onClick={() => setOpenModal(false)} variant="contained" size="large" sx={{ fontWeight: 'bold', bgcolor: '#1a237e', px: 5 }}>Close Window</Button>
         </DialogActions>
       </Dialog>
     </Box>

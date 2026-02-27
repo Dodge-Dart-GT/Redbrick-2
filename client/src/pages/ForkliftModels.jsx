@@ -26,7 +26,7 @@ export default function ForkliftModels() {
   
   const [selectedModel, setSelectedModel] = useState(null);
   const [openModal, setOpenModal] = useState(false);
-  const [activeImageIndex, setActiveImageIndex] = useState(0); // NEW: Tracks which image is active
+  const [activeImageIndex, setActiveImageIndex] = useState(0); 
 
   useEffect(() => {
     const fetchModels = async () => {
@@ -47,7 +47,7 @@ export default function ForkliftModels() {
 
   const handleOpenModal = (model) => {
     setSelectedModel(model);
-    setActiveImageIndex(0); // Reset to first image when opening
+    setActiveImageIndex(0); 
     setOpenModal(true);
   };
 
@@ -56,27 +56,25 @@ export default function ForkliftModels() {
     setTimeout(() => setSelectedModel(null), 300);
   };
 
-  // Vehicle Navigation Logic
   const handleNext = () => {
     const currentIndex = filteredModels.findIndex(m => m._id === selectedModel._id);
     const nextIndex = (currentIndex + 1) % filteredModels.length; 
     setSelectedModel(filteredModels[nextIndex]);
-    setActiveImageIndex(0); // Reset image index for the new vehicle
+    setActiveImageIndex(0); 
   };
 
   const handlePrev = () => {
     const currentIndex = filteredModels.findIndex(m => m._id === selectedModel._id);
     const prevIndex = (currentIndex - 1 + filteredModels.length) % filteredModels.length; 
     setSelectedModel(filteredModels[prevIndex]);
-    setActiveImageIndex(0); // Reset image index for the new vehicle
+    setActiveImageIndex(0); 
   };
 
-  // Helper to safely get the array of images
   const getModelImages = (model) => {
     if (!model) return [];
     if (model.images && model.images.length > 0) return model.images;
     if (model.image) return [model.image];
-    return ['https://placehold.co/600x400?text=No+Vehicle+Image']; // Fixed fallback
+    return ['https://placehold.co/600x400?text=No+Vehicle+Image']; 
   };
 
   const activeImagesArray = getModelImages(selectedModel);
@@ -108,7 +106,7 @@ export default function ForkliftModels() {
             const displayImage = getModelImages(model)[0];
 
             return (
-              <Grid item xs={12} sm={6} md={4} lg={3} key={model._id}>
+              <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={model._id}>
                 <Card 
                   elevation={0}
                   onClick={() => handleOpenModal(model)}
@@ -149,7 +147,6 @@ export default function ForkliftModels() {
             </DialogTitle>
             
             <DialogContent dividers sx={{ p: 0 }}>
-              {/* IMAGE WRAPPER WITH CAROUSEL ARROWS FOR VEHICLES */}
               <Box sx={{ position: 'relative', bgcolor: '#f1f3f5', display: 'flex', flexDirection: 'column', alignItems: 'center', borderBottom: '1px solid #e0e0e0' }}>
                 
                 <IconButton 
@@ -159,7 +156,6 @@ export default function ForkliftModels() {
                   <ArrowBackIosNewIcon />
                 </IconButton>
 
-                {/* Main Active Image */}
                 <img 
                   src={activeImagesArray[activeImageIndex]} 
                   alt={selectedModel.model} 
@@ -173,7 +169,6 @@ export default function ForkliftModels() {
                   <ArrowForwardIosIcon />
                 </IconButton>
 
-                {/* THUMBNAIL GALLERY (Only shows if > 1 image) */}
                 {activeImagesArray.length > 1 && (
                   <Stack direction="row" spacing={1} sx={{ p: 1.5, width: '100%', overflowX: 'auto', bgcolor: '#e0e0e0' }}>
                     {activeImagesArray.map((imgUrl, index) => (
