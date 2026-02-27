@@ -2,9 +2,21 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const bcrypt = require('bcryptjs'); // Needed for password hashing
+const { protect } = require('../middleware/authMiddleware');
+
+// --- CUSTOM SECURITY MIDDLEWARE ---
+// This ensures ONLY the 'owner' can access the account management routes
+const ownerOnly = (req, res, next) => {
+  if (req.user && req.user.role === 'owner') {
+    next();
+  } else {
+    res.status(403).json({ message: 'Access denied. Owner privileges required.' });
+  }
+};
 
 // 1. GET ALL USERS (Admin/Owner View)
-router.get('/', async (req, res) => {
+// Secured: Only the owner can fetch the full list of users
+router.get('/', protect, ownerOnly, async (req, res) => {
   try {
     const users = await User.find({}).select('-password');
     res.json(users);
@@ -14,8 +26,9 @@ router.get('/', async (req, res) => {
 });
 
 // 2. UPDATE USER ROLE (Admin/Owner Action)
-router.put('/:id/role', async (req, res) => {
-  const { role } = req.body; // 'admin' or 'user'
+// Secured: Only the owner can promote or demote users
+router.put('/:id/role', protect, ownerOnly, async (req, res) => {
+  const { role } = req.body; 
 
   try {
     const user = await User.findById(req.params.id);
@@ -27,7 +40,15 @@ router.put('/:id/role', async (req, res) => {
 
       user.role = role;
       const updatedUser = await user.save();
-      res.json(updatedUser);
+      
+      // Return safe data without the password
+      res.json({
+        _id: updatedUser._id,
+        firstName: updatedUser.firstName,
+        lastName: updatedUser.lastName,
+        email: updatedUser.email,
+        role: updatedUser.role
+      });
     } else {
       res.status(404).json({ message: 'User not found' });
     }
@@ -36,9 +57,15 @@ router.put('/:id/role', async (req, res) => {
   }
 });
 
-// 3. UPDATE OWN PROFILE (User Action) - NEW
-router.put('/profile/:id', async (req, res) => {
+// 3. UPDATE OWN PROFILE (User Action)
+// Secured: Users must be logged in and can only update their own specific ID
+router.put('/profile/:id', protect, async (req, res) => {
   try {
+    // Security check: ensure the user is only updating their own profile
+    if (req.user._id.toString() !== req.params.id) {
+        return res.status(401).json({ message: 'Not authorized to update this profile.' });
+    }
+
     const user = await User.findById(req.params.id);
 
     if (user) {

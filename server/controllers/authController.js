@@ -31,7 +31,7 @@ const registerUser = async (req, res) => {
       phone,
       address, 
       password: hashedPassword,
-      role: 'customer' // FIX #1: Changed from 'user' to 'customer' to match your Navbar
+      role: 'user' // THE FIX: Standardized to 'user'
     });
 
     if (user) {
@@ -40,7 +40,7 @@ const registerUser = async (req, res) => {
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
-        role: user.role.toLowerCase(), // Forces lowercase
+        role: user.role, 
         token: generateToken(user._id),
       });
     } else {
@@ -67,7 +67,7 @@ const loginUser = async (req, res) => {
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
-        role: user.role.toLowerCase(), // FIX #2: Forces "Owner" or "Admin" to become "owner" or "admin"
+        role: user.role.toLowerCase(),
         token: generateToken(user._id),
       });
     } else {

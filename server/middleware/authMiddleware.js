@@ -7,15 +7,9 @@ const protect = async (req, res, next) => {
 
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
     try {
-      // Get token from header (Format: Bearer <token>)
       token = req.headers.authorization.split(' ')[1];
-
-      // Verify token
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-      // Get user from the token (excluding password)
       req.user = await User.findById(decoded.id).select('-password');
-
       next();
     } catch (error) {
       console.error(error);
@@ -30,10 +24,11 @@ const protect = async (req, res, next) => {
 
 // 2. ADMIN/OWNER ONLY: Only allows users with privileged roles
 const adminOrOwner = (req, res, next) => {
-  if (req.user && (req.user.role === 'admin' || req.user.role === 'owner')) {
+  // THE FIX: Now includes 'staff' as a valid high-level role
+  if (req.user && (req.user.role === 'admin' || req.user.role === 'staff' || req.user.role === 'owner')) {
     next();
   } else {
-    res.status(403).json({ message: 'Not authorized as an admin or owner' });
+    res.status(403).json({ message: 'Not authorized as an admin, staff, or owner' });
   }
 };
 

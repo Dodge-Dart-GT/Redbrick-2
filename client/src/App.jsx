@@ -6,12 +6,11 @@ import LoginPage from './pages/LoginPage';
 // import RegisterPage from './pages/RegisterPage'; // Uncomment if you have a register page
 import CustomerDashboard from './pages/CustomerDashboard';
 import OwnerDashboard from './pages/OwnerDashboard';
+import AdminDashboard from './pages/AdminDashboard'; // <-- NEW: Admin Dashboard Import
 import ProfilePage from './pages/ProfilePage';
 import ForkliftModels from './pages/ForkliftModels';
 import BookingPage from './pages/BookingPage'; 
 import UserManagement from './pages/UserManagement';
-
-// THE FIX: Uncommented this import!
 import ForkliftManagement from './pages/ForkliftManagement'; 
 
 function App() {
@@ -28,6 +27,7 @@ function App() {
           {/* Main Dashboards */}
           <Route path="/dashboard" element={<CustomerDashboard />} />
           <Route path="/owner-dashboard" element={<OwnerDashboard />} />
+          <Route path="/admin-dashboard" element={<AdminDashboard />} /> {/* <-- NEW: Admin Route */}
           
           {/* Application Features */}
           <Route path="/profile" element={<ProfilePage />} />
@@ -36,8 +36,6 @@ function App() {
           
           {/* Owner/Admin Management Pages */}
           <Route path="/users" element={<UserManagement />} />
-          
-          {/* THE FIX: Uncommented the inventory route! */}
           <Route path="/inventory" element={<ForkliftManagement />} /> 
           
           {/* Fallback Route (Catches any typos in the URL and sends them back to login) */}

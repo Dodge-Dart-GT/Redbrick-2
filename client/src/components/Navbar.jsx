@@ -12,7 +12,7 @@ export default function Navbar() {
     ? JSON.parse(localStorage.getItem('userInfo')) 
     : null;
 
-  const role = userInfo?.role; // 'owner', 'admin', 'user', or 'customer'
+  const role = userInfo?.role; // 'owner', 'admin', 'staff', 'user', or 'customer'
 
   const handleMenu = (event) => setAnchorEl(event.currentTarget);
   const handleClose = () => setAnchorEl(null);
@@ -32,11 +32,13 @@ export default function Navbar() {
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           
-          {/* 1. MANAGEMENT LINKS (Owner & Admin) */}
-          {(role === 'owner' || role === 'admin') && (
+          {/* 1. MANAGEMENT LINKS (Owner & Admin/Staff) */}
+          {(role === 'owner' || role === 'admin' || role === 'staff') && (
             <>
-              {/* THE FIX: Changed from '/owner' to '/owner-dashboard' */}
-              <Button color="inherit" onClick={() => navigate('/owner-dashboard')}>Dashboard</Button>
+              {/* THE FIX: Automatically routes 'owner' to /owner-dashboard, and admins to /admin-dashboard */}
+              <Button color="inherit" onClick={() => navigate(role === 'owner' ? '/owner-dashboard' : '/admin-dashboard')}>
+                Dashboard
+              </Button>
               <Button color="inherit" onClick={() => navigate('/inventory')}>Fleet</Button>
             </>
           )}
@@ -46,7 +48,7 @@ export default function Navbar() {
              <Button color="inherit" onClick={() => navigate('/users')}>Users</Button>
           )}
 
-          {/* 3. CUSTOMER LINKS (Checking for both user and customer to be safe) */}
+          {/* 3. CUSTOMER LINKS */}
           {(role === 'user' || role === 'customer') && (
              <>
                <Button color="inherit" onClick={() => navigate('/dashboard')}>Home</Button>

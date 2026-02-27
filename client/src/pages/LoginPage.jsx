@@ -55,7 +55,6 @@ export default function LoginPage() {
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
 
-  // Password Visibility State
   const [showPassword, setShowPassword] = useState(false);
 
   // Validation State
@@ -67,7 +66,6 @@ export default function LoginPage() {
     hasLength: false
   });
 
-  // 1. Password Strength Logic
   useEffect(() => {
     setValidations({
       hasUpper: /[A-Z]/.test(password),
@@ -81,10 +79,8 @@ export default function LoginPage() {
   const isPasswordValid = Object.values(validations).every(Boolean);
   const doPasswordsMatch = password === confirmPassword;
 
-  // 2. Strict Number-Only Input Handler
   const handlePhoneChange = (e) => {
     const value = e.target.value;
-    // Regex: Only allow digits (0-9)
     if (/^\d*$/.test(value)) {
       setPhone(value);
     }
@@ -95,7 +91,6 @@ export default function LoginPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validation Blocks
     if (!isLogin) {
       if (!isPasswordValid) {
         alert("Please ensure your password meets all requirements.");
@@ -119,9 +114,13 @@ export default function LoginPage() {
         alert("Login Successful!");
         localStorage.setItem('userInfo', JSON.stringify(res.data));
         
-        // --- THE FIX: Routing matching App.jsx ---
-        if (res.data.role === 'owner' || res.data.role === 'admin') {
+        // --- THE FIX: Routing Admins/Staff to their specific Command Center! ---
+        const userRole = res.data.role;
+        
+        if (userRole === 'owner') {
             navigate('/owner-dashboard');      
+        } else if (userRole === 'admin' || userRole === 'staff') {
+            navigate('/admin-dashboard');
         } else {
             navigate('/dashboard'); 
         }
@@ -129,7 +128,6 @@ export default function LoginPage() {
       } else {
         alert("Registration Successful! Please Login.");
         setIsLogin(true);
-        // Reset fields
         setPassword('');
         setConfirmPassword('');
       }
@@ -140,7 +138,6 @@ export default function LoginPage() {
     }
   };
 
-  // Checklist Component
   const ValidationItem = ({ valid, text }) => (
     <ListItem dense sx={{ py: 0 }}>
       <ListItemIcon sx={{ minWidth: 30 }}>
@@ -198,8 +195,8 @@ export default function LoginPage() {
                <TextField 
                  fullWidth label="Phone Number" margin="normal" required size="small"
                  value={phone} 
-                 onChange={handlePhoneChange} // Uses strict number filter
-                 inputProps={{ maxLength: 11 }} // Optional: Limit length (e.g., 09xxxxxxxxx)
+                 onChange={handlePhoneChange} 
+                 inputProps={{ maxLength: 11 }} 
                />
                <TextField 
                  fullWidth label="Address" margin="normal" required size="small"
@@ -213,7 +210,6 @@ export default function LoginPage() {
             value={email} onChange={(e) => setEmail(e.target.value)} 
           />
           
-          {/* PASSWORD FIELD */}
           <TextField 
             fullWidth 
             label="Password" 
@@ -239,7 +235,6 @@ export default function LoginPage() {
             }}
           />
 
-          {/* CONFIRM PASSWORD FIELD */}
           {!isLogin && (
             <TextField 
               fullWidth 
@@ -255,7 +250,6 @@ export default function LoginPage() {
             />
           )}
 
-          {/* VISUAL VALIDATION CHECKLIST */}
           {!isLogin && (
             <Box sx={{ mt: 1, p: 1, bgcolor: '#f5f5f5', borderRadius: 1 }}>
               <Typography variant="caption" fontWeight="bold" sx={{ ml: 1 }}>
