@@ -98,19 +98,19 @@ export default function BookingPage() {
 
   const imagesArray = getImagesArray(model);
 
+  // --- THE FIX: Calculate the earliest possible start date dynamically ---
+  const today = dayjs();
+  const availDate = model.nextAvailableDate ? dayjs(model.nextAvailableDate) : null;
+  // If the vehicle is rented until a future date, the calendar locks until that date. Otherwise, starts today.
+  const minStartDate = (availDate && availDate.isAfter(today)) ? availDate : today;
+
   return (
     <Box sx={{ minHeight: '100vh', backgroundColor: '#f4f6f8', pb: 8 }}>
       <Navbar />
       
       <Box sx={{ maxWidth: 1300, mx: 'auto', p: { xs: 2, md: 4 } }}>
         
-        {/* THE FIX: Rigid Flexbox layout instead of Grid to force two columns */}
-        <Box sx={{ 
-          display: 'flex', 
-          flexDirection: { xs: 'column', md: 'row' }, 
-          alignItems: 'flex-start', 
-          gap: 4 
-        }}>
+        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, alignItems: 'flex-start', gap: 4 }}>
           
           {/* --- LEFT COLUMN: IMAGE CAROUSEL & SPECS (60% Width) --- */}
           <Box sx={{ width: { xs: '100%', md: '60%' } }}>
@@ -198,9 +198,16 @@ export default function BookingPage() {
                 {model.make} {model.model}
               </Typography>
 
-              <Alert severity="info" sx={{ mb: 4, bgcolor: '#e3f2fd', color: '#0d47a1', borderRadius: 2 }}>
-                  Your request will be sent to the owner for approval. You will be notified of the status shortly.
-              </Alert>
+              {/* THE FIX: Dynamic Alert depending on Rented Status */}
+              {model.status === 'Rented' ? (
+                 <Alert severity="warning" sx={{ mb: 4, borderRadius: 2 }}>
+                    This vehicle is currently rented. You may pre-book it starting from <strong>{new Date(model.nextAvailableDate).toLocaleDateString()}</strong>.
+                 </Alert>
+              ) : (
+                 <Alert severity="info" sx={{ mb: 4, bgcolor: '#e3f2fd', color: '#0d47a1', borderRadius: 2 }}>
+                    Your request will be sent to the owner for approval. You will be notified of the status shortly.
+                 </Alert>
+              )}
 
               <Divider sx={{ mb: 4 }} />
 
@@ -208,11 +215,12 @@ export default function BookingPage() {
                 <LocalizationProvider dateAdapter={AdapterDayjs}>
                   <Stack spacing={3}>
                     
+                    {/* THE FIX: Apply the dynamic minDate here */}
                     <DatePicker
                       label="Rental Start Date"
                       value={startDate}
                       onChange={(newValue) => setStartDate(newValue)}
-                      disablePast
+                      minDate={minStartDate}
                       sx={{ width: '100%', bgcolor: 'white' }}
                     />
                     
@@ -220,8 +228,7 @@ export default function BookingPage() {
                       label="Rental End Date"
                       value={endDate}
                       onChange={(newValue) => setEndDate(newValue)}
-                      disablePast
-                      minDate={startDate || dayjs()} 
+                      minDate={startDate || minStartDate} 
                       disabled={!startDate} 
                       sx={{ width: '100%', bgcolor: 'white' }}
                     />

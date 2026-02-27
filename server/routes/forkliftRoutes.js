@@ -1,14 +1,32 @@
 const express = require('express');
 const router = express.Router();
 const Forklift = require('../models/Forklift');
+const RentalRequest = require('../models/RentalRequest'); // <-- IMPORTED THIS!
 const { protect, adminOrOwner } = require('../middleware/authMiddleware');
 
 // 1. GET ALL FORKLIFTS (Publicly visible for catalog)
 router.get('/', async (req, res) => {
   try {
     const forklifts = await Forklift.find({});
-    res.json(forklifts);
+    
+    // Find all currently active rentals
+    const activeRentals = await RentalRequest.find({ status: 'Active' });
+
+    // Map through forklifts and attach the return date if it is currently rented
+    const inventoryWithDates = forklifts.map(forklift => {
+      let nextDate = null;
+      if (forklift.status === 'Rented') {
+        // Match the forklift to its active rental
+        const activeJob = activeRentals.find(r => r.forklift.toString() === forklift._id.toString());
+        if (activeJob) nextDate = activeJob.endDate;
+      }
+      // Combine the original forklift data with our new date
+      return { ...forklift.toObject(), nextAvailableDate: nextDate };
+    });
+
+    res.json(inventoryWithDates);
   } catch (error) {
+    console.error("Error fetching forklifts:", error);
     res.status(500).json({ message: 'Server Error' });
   }
 });

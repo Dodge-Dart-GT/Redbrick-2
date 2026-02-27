@@ -5,7 +5,7 @@ import {
   Box, Grid, Typography, TextField, Button, Card, CardMedia,
   CardContent, Chip, InputAdornment, List, ListItem, 
   ListItemIcon, ListItemText, Dialog, DialogTitle, DialogContent, 
-  DialogActions, IconButton, Stack
+  DialogActions, IconButton, Stack, MenuItem, Select, FormControl, InputLabel
 } from '@mui/material';
 import Navbar from '../components/Navbar';
 
@@ -18,11 +18,17 @@ import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import CloseIcon from '@mui/icons-material/Close';
 import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew'; 
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos'; 
+import FilterListIcon from '@mui/icons-material/FilterList';
+import InfoIcon from '@mui/icons-material/Info';
 
 export default function ForkliftModels() {
   const navigate = useNavigate();
   const [models, setModels] = useState([]);
+  
+  // --- NEW: Filter States ---
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All');
+  const [makeFilter, setMakeFilter] = useState('All');
   
   const [selectedModel, setSelectedModel] = useState(null);
   const [openModal, setOpenModal] = useState(false);
@@ -40,10 +46,18 @@ export default function ForkliftModels() {
     fetchModels();
   }, []);
 
-  const filteredModels = models.filter(m => 
-    m.make?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    m.model?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // --- NEW: Dynamic Options for Dropdowns ---
+  const uniqueMakes = ['All', ...new Set(models.map(m => m.make).filter(Boolean))];
+
+  // --- NEW: Apply all filters to the grid ---
+  const filteredModels = models.filter(m => {
+    const matchesSearch = (m.make || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          (m.model || '').toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === 'All' || m.status === statusFilter;
+    const matchesMake = makeFilter === 'All' || m.make === makeFilter;
+    
+    return matchesSearch && matchesStatus && matchesMake;
+  });
 
   const handleOpenModal = (model) => {
     setSelectedModel(model);
@@ -77,14 +91,30 @@ export default function ForkliftModels() {
     return ['https://placehold.co/600x400?text=No+Vehicle+Image']; 
   };
 
+  // --- NEW: Helper to display availability status ---
+  const renderAvailabilityText = (model) => {
+    if (model.status === 'Rented') {
+      return model.nextAvailableDate 
+        ? `Available on: ${new Date(model.nextAvailableDate).toLocaleDateString()}`
+        : 'Currently Rented';
+    }
+    if (model.status === 'Maintenance') return 'Currently in Maintenance';
+    if (model.status === 'Retired') return 'Retired from Fleet';
+    return 'Available Now';
+  };
+
   const activeImagesArray = getModelImages(selectedModel);
 
+  // --- NEW: Allow booking if the forklift is Available OR Rented ---
+  const isBookable = selectedModel ? (selectedModel.status === 'Available' || selectedModel.status === 'Rented') : false;
+
   return (
-    <Box sx={{ minHeight: '100vh', backgroundColor: '#f4f6f8' }}>
+    <Box sx={{ minHeight: '100vh', backgroundColor: '#f4f6f8', pb: 8 }}>
       <Navbar />
       
       <Box sx={{ p: { xs: 2, md: 5 }, maxWidth: 1400, mx: 'auto' }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', mb: 4, flexWrap: 'wrap', gap: 2 }}>
+        
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', mb: 3, flexWrap: 'wrap', gap: 2 }}>
           <Box>
             <Typography variant="h4" fontWeight="900" sx={{ color: '#1a237e', letterSpacing: '-0.5px' }}>
               OUR FLEET
@@ -93,17 +123,44 @@ export default function ForkliftModels() {
               Browse {filteredModels.length} available models for your next project.
             </Typography>
           </Box>
-          <TextField 
-            placeholder="Search make or model..." size="small" variant="outlined"
-            value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-            sx={{ width: { xs: '100%', sm: 300 }, bgcolor: 'white', borderRadius: 1 }}
-            InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon color="action" /></InputAdornment> }}
-          />
+        </Box>
+
+        {/* --- NEW: FILTER BAR --- */}
+        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 5, p: 2, bgcolor: 'white', borderRadius: 3, border: '1px solid #e0e0e0', alignItems: 'center' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, pr: 2, borderRight: { md: '1px solid #eee' } }}>
+                <FilterListIcon color="action" />
+                <Typography variant="subtitle2" color="text.secondary" fontWeight="bold">FILTERS:</Typography>
+            </Box>
+            
+            <TextField 
+                placeholder="Search models..." size="small" variant="outlined"
+                value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+                sx={{ width: { xs: '100%', sm: 250 } }}
+                InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon color="action" /></InputAdornment> }}
+            />
+
+            <FormControl size="small" sx={{ minWidth: 150 }}>
+                <InputLabel>Manufacturer</InputLabel>
+                <Select value={makeFilter} label="Manufacturer" onChange={(e) => setMakeFilter(e.target.value)}>
+                    {uniqueMakes.map(make => <MenuItem key={make} value={make}>{make}</MenuItem>)}
+                </Select>
+            </FormControl>
+
+            <FormControl size="small" sx={{ minWidth: 150 }}>
+                <InputLabel>Status</InputLabel>
+                <Select value={statusFilter} label="Status" onChange={(e) => setStatusFilter(e.target.value)}>
+                    <MenuItem value="All">All Statuses</MenuItem>
+                    <MenuItem value="Available">Available</MenuItem>
+                    <MenuItem value="Rented">Rented</MenuItem>
+                    <MenuItem value="Maintenance">Maintenance</MenuItem>
+                </Select>
+            </FormControl>
         </Box>
 
         <Grid container spacing={4}>
           {filteredModels.map((model) => {
             const displayImage = getModelImages(model)[0];
+            const isAvailable = model.status === 'Available';
 
             return (
               <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={model._id}>
@@ -111,7 +168,7 @@ export default function ForkliftModels() {
                   elevation={0}
                   onClick={() => handleOpenModal(model)}
                   sx={{ 
-                    borderRadius: 3, border: '1px solid #e0e0e0',
+                    borderRadius: 3, border: '1px solid #e0e0e0', position: 'relative',
                     transition: 'transform 0.2s, box-shadow 0.2s',
                     cursor: 'pointer', height: '100%', display: 'flex', flexDirection: 'column',
                     '&:hover': { transform: 'translateY(-6px)', boxShadow: '0 12px 24px rgba(0,0,0,0.1)', borderColor: '#1a237e' }
@@ -121,12 +178,32 @@ export default function ForkliftModels() {
                     component="img" height="220"
                     image={displayImage}
                     alt={`${model.make} ${model.model}`}
-                    sx={{ objectFit: 'cover' }}
+                    sx={{ objectFit: 'cover', opacity: isAvailable ? 1 : 0.7 }}
                   />
+                  
+                  {/* Floating Availability Badge */}
+                  {!isAvailable && (
+                      <Box sx={{ position: 'absolute', top: 12, left: 12, bgcolor: 'rgba(0,0,0,0.7)', color: 'white', px: 1.5, py: 0.5, borderRadius: 1, backdropFilter: 'blur(4px)' }}>
+                          <Typography variant="caption" fontWeight="bold">
+                             {renderAvailabilityText(model)}
+                          </Typography>
+                      </Box>
+                  )}
+
                   <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                    <Typography variant="h6" fontWeight="800" sx={{ lineHeight: 1.2 }}>{model.make} {model.model}</Typography>
-                    <Box sx={{ mt: 'auto', pt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Chip label={model.status || 'Available'} size="small" color={model.status === 'Rented' ? 'error' : 'success'} sx={{ fontWeight: 'bold', borderRadius: 1 }} />
+                    <Typography variant="h6" fontWeight="900" sx={{ lineHeight: 1.2 }}>{model.make} {model.model}</Typography>
+                    
+                    <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', gap: 2, mt: 1 }}>
+                        <span><strong>Cap:</strong> {model.capacity || 'N/A'}</span>
+                        <span><strong>Pwr:</strong> {model.power || 'N/A'}</span>
+                    </Typography>
+
+                    <Box sx={{ mt: 'auto', pt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f3f5' }}>
+                      <Chip 
+                        label={model.status || 'Available'} size="small" 
+                        color={isAvailable ? 'success' : model.status === 'Rented' ? 'warning' : 'error'} 
+                        sx={{ fontWeight: 'bold', borderRadius: 1 }} 
+                      />
                       <Typography variant="button" sx={{ color: '#1a237e', fontWeight: 'bold' }}>DETAILS</Typography>
                     </Box>
                   </CardContent>
@@ -134,10 +211,16 @@ export default function ForkliftModels() {
               </Grid>
             )
           })}
+          {filteredModels.length === 0 && (
+              <Box sx={{ width: '100%', textAlign: 'center', py: 10 }}>
+                  <InfoIcon sx={{ fontSize: 60, color: '#bdbdbd', mb: 2 }} />
+                  <Typography variant="h6" color="text.secondary">No vehicles found matching your filters.</Typography>
+                  <Button onClick={() => {setStatusFilter('All'); setMakeFilter('All'); setSearchTerm('');}} sx={{ mt: 2 }}>Clear Filters</Button>
+              </Box>
+          )}
         </Grid>
       </Box>
 
-      {/* --- MODAL --- */}
       <Dialog open={openModal} onClose={handleCloseModal} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
         {selectedModel && (
           <>
@@ -190,13 +273,19 @@ export default function ForkliftModels() {
                 )}
               </Box>
 
-              <Box sx={{ p: 3 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                  <Typography variant="h5" fontWeight="900" color="#1a237e">{selectedModel.make} {selectedModel.model}</Typography>
-                  <Chip label={selectedModel.status || 'Available'} color={selectedModel.status === 'Rented' ? 'error' : 'success'} sx={{ fontWeight: 'bold', borderRadius: 1 }} />
+              <Box sx={{ p: 4 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                  <Typography variant="h4" fontWeight="900" color="#1a237e">{selectedModel.make} {selectedModel.model}</Typography>
+                  <Chip label={selectedModel.status || 'Available'} color={selectedModel.status === 'Available' ? 'success' : selectedModel.status === 'Rented' ? 'warning' : 'error'} sx={{ fontWeight: 'bold', borderRadius: 1 }} />
                 </Box>
+                
+                {selectedModel.status !== 'Available' && (
+                    <Typography variant="subtitle2" color="error.main" fontWeight="bold" sx={{ mb: 3 }}>
+                       Notice: {renderAvailabilityText(selectedModel)}
+                    </Typography>
+                )}
 
-                <List disablePadding>
+                <List disablePadding sx={{ mt: selectedModel.status === 'Available' ? 3 : 1 }}>
                   <ListItem disableGutters>
                     <ListItemIcon sx={{ minWidth: 40 }}><BuildCircleIcon color="action" /></ListItemIcon>
                     <ListItemText primary="Make & Model" secondary={`${selectedModel.make} ${selectedModel.model}`} />
@@ -213,14 +302,17 @@ export default function ForkliftModels() {
               </Box>
             </DialogContent>
 
+            {/* --- NEW: Dynamic Button changes based on status --- */}
             <DialogActions sx={{ p: 3, bgcolor: '#f8f9fa', borderTop: '1px solid #e0e0e0' }}>
               <Button onClick={handleCloseModal} sx={{ fontWeight: 'bold', color: 'text.secondary', mr: 2 }}>CANCEL</Button>
               <Button 
-                variant="contained" size="large" disabled={selectedModel.status === 'Rented'} startIcon={<CalendarMonthIcon />}
+                variant="contained" size="large" 
+                disabled={!isBookable} 
+                startIcon={<CalendarMonthIcon />}
                 sx={{ bgcolor: '#1a237e', fontWeight: '800', px: 4, '&:hover': { bgcolor: '#0d1440' } }}
                 onClick={() => navigate(`/book/${selectedModel._id}`, { state: { model: selectedModel } })} 
               >
-                {selectedModel.status === 'Rented' ? 'UNAVAILABLE' : 'BOOK MODEL'}
+                {selectedModel.status === 'Available' ? 'BOOK MODEL' : (selectedModel.status === 'Rented' ? 'RESERVE FUTURE DATE' : 'UNAVAILABLE')}
               </Button>
             </DialogActions>
           </>

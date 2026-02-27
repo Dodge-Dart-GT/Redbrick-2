@@ -16,12 +16,12 @@ router.post('/', protect, async (req, res) => {
       return res.status(400).json({ message: 'End date must be after start date.' });
     }
 
+    // THE FIX: Changed to strict inequalities ($lt, $gt) to allow same-day turnarounds
     const overlappingRequests = await RentalRequest.find({
       forklift: forkliftId,
       status: 'Active', 
-      $or: [
-        { startDate: { $lte: end }, endDate: { $gte: start } }
-      ]
+      startDate: { $lt: end }, 
+      endDate: { $gt: start }
     });
 
     if (overlappingRequests.length > 0) {
@@ -49,8 +49,8 @@ router.get('/all', async (req, res) => {
   try {
     const requests = await RentalRequest.find({})
       .populate('user', 'firstName lastName email phone address')
-      // Added 'images' to ensure multi-image arrays load for the admin
-      .populate('forklift', 'make model image images capacity power');
+      // Added 'torque fuel' to match the other populations
+      .populate('forklift', 'make model image images capacity power torque fuel');
     res.json(requests);
   } catch (error) {
     res.status(500).json({ message: 'Server Error' });
@@ -95,14 +95,14 @@ router.put('/:id', async (req, res) => {
       await Forklift.findByIdAndUpdate(request.forklift, { status: 'Rented' });
       
       // AUTO-REJECT LOGIC
+      // THE FIX: Updated auto-reject logic to match the new strict inequality overlap rules
       await RentalRequest.updateMany(
         {
           _id: { $ne: request._id }, 
           forklift: request.forklift,
           status: 'Pending',
-          $or: [
-            { startDate: { $lte: request.endDate }, endDate: { $gte: request.startDate } }
-          ]
+          startDate: { $lt: request.endDate }, 
+          endDate: { $gt: request.startDate }
         },
         { 
           $set: { 
