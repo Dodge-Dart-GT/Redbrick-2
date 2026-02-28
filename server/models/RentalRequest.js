@@ -19,7 +19,6 @@ const rentalRequestSchema = new mongoose.Schema({
     type: Date,
     required: true
   },
-  // --- THE FIX: ADD THE ACTUAL RETURN DATE FIELD ---
   actualReturnDate: {
     type: Date
   },
@@ -29,7 +28,8 @@ const rentalRequestSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['Pending', 'Active', 'Completed', 'Rejected'],
+    // --- THE FIX: ADDED 'Cancelled' TO THE ENUM LIST ---
+    enum: ['Pending', 'Active', 'Completed', 'Rejected', 'Cancelled'],
     default: 'Pending'
   },
   rejectionReason: { 

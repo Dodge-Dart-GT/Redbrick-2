@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Box, Grid, Paper, Typography, Chip, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, Button, List, ListItem,
-  ListItemText, ListItemIcon, TextField, IconButton,
+  ListItemText, ListItemIcon, TextField, IconButton, Tooltip,
   Dialog, DialogTitle, DialogContent, DialogActions, Divider,
   Pagination, Avatar, Stack, Rating, Snackbar, Alert, CircularProgress
 } from '@mui/material';
@@ -33,6 +33,10 @@ export default function CustomerDashboard() {
   // Details Modal State
   const [openModal, setOpenModal] = useState(false);
   const [selectedReq, setSelectedReq] = useState(null);
+
+  // --- NEW: Cancel Booking Modal State ---
+  const [cancelModalOpen, setCancelModalOpen] = useState(false);
+  const [rentalToCancel, setRentalToCancel] = useState(null);
 
   // Review Modal State
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
@@ -68,7 +72,8 @@ export default function CustomerDashboard() {
         requested: sortedData.filter(r => r.status === 'Pending').length,
         active: sortedData.filter(r => r.status === 'Active').length,
         completed: sortedData.filter(r => r.status === 'Completed').length,
-        due: sortedData.filter(r => r.status === 'Rejected').length 
+        // Combined Rejected and Cancelled into the same warning metric
+        due: sortedData.filter(r => r.status === 'Rejected' || r.status === 'Cancelled').length 
       });
     } catch (error) {
       console.error("Error fetching rentals:", error);
@@ -79,7 +84,8 @@ export default function CustomerDashboard() {
     switch(status) {
       case 'Active': return 'success';
       case 'Pending': return 'primary';
-      case 'Rejected': return 'error';
+      case 'Rejected': 
+      case 'Cancelled': return 'error'; // Both return red chips
       case 'Completed': return 'default';
       default: return 'default';
     }
@@ -88,7 +94,8 @@ export default function CustomerDashboard() {
   const getAlertIcon = (status) => {
     switch(status) {
       case 'Active': return <CheckCircleIcon fontSize="small" color="success" />;
-      case 'Rejected': return <CancelIcon fontSize="small" color="error" />;
+      case 'Rejected': 
+      case 'Cancelled': return <CancelIcon fontSize="small" color="error" />;
       case 'Completed': return <DoneAllIcon fontSize="small" color="action" />;
       default: return <InfoIcon fontSize="small" color="info" />;
     }
@@ -100,7 +107,6 @@ export default function CustomerDashboard() {
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; 
   };
 
-  // --- NEW: LOGIC TO CALCULATE EARLY/LATE/ON-TIME ---
   const getReturnStatus = (expectedEnd, actualReturn) => {
     if (!actualReturn) return null;
     const expected = new Date(expectedEnd).setHours(0,0,0,0);
@@ -119,6 +125,28 @@ export default function CustomerDashboard() {
 
   const pageCount = Math.max(1, Math.ceil(filteredRentals.length / ITEMS_PER_PAGE));
   const displayedRentals = filteredRentals.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
+
+  // --- NEW: CANCEL BOOKING HANDLERS ---
+  const handleOpenCancel = (rental) => {
+    setRentalToCancel(rental);
+    setCancelModalOpen(true);
+  };
+
+  const executeCancelBooking = async () => {
+    const userInfo = JSON.parse(localStorage.getItem('userInfo'));
+    try {
+      await axios.put(`http://localhost:5000/api/rentals/${rentalToCancel._id}`, 
+        { status: 'Cancelled' }, 
+        { headers: { Authorization: `Bearer ${userInfo.token}` } }
+      );
+      setSnackbar({ open: true, message: 'Booking successfully cancelled.', severity: 'info' });
+      setCancelModalOpen(false);
+      if (openModal) setOpenModal(false); // Close details modal if open
+      fetchMyRentals(); 
+    } catch (error) {
+      setSnackbar({ open: true, message: 'Failed to cancel booking.', severity: 'error' });
+    }
+  };
 
   const handleOpenReview = (rental) => {
     setReviewTarget(rental);
@@ -191,7 +219,6 @@ export default function CustomerDashboard() {
       <Box sx={{ p: { xs: 2, md: 5 }, maxWidth: 1500, mx: 'auto' }}>
         <Grid container spacing={4}>
           
-          {/* --- KPI STATS --- */}
           <Grid size={{ xs: 12 }}>
             <Grid container spacing={3}>
               {[
@@ -213,7 +240,6 @@ export default function CustomerDashboard() {
             </Grid>
           </Grid>
 
-          {/* --- MAIN TABLE SECTION --- */}
           <Grid size={{ xs: 12, md: 8 }}>
             <Paper elevation={0} sx={{ p: 4, borderRadius: 4, border: '1px solid #e0e0e0', height: '100%' }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4, flexWrap: 'wrap', gap: 2 }}>
@@ -265,7 +291,6 @@ export default function CustomerDashboard() {
                               </Box>
                             </TableCell>
 
-                            {/* TABLE DATES WITH EARLY/LATE BADGE */}
                             <TableCell sx={{ py: 2.5 }}>
                               <Typography variant="body2" fontWeight="bold" color="text.primary">
                                 Out: {row.startDate ? new Date(row.startDate).toLocaleDateString() : 'N/A'}
@@ -289,14 +314,27 @@ export default function CustomerDashboard() {
                             
                             <TableCell align="center" sx={{ py: 2.5 }}>
                               <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
-                                <IconButton onClick={() => {setSelectedReq(row); setOpenModal(true);}} sx={{ bgcolor: '#f1f3f5', '&:hover': { bgcolor: '#e0e0e0' } }}>
-                                  <VisibilityIcon color="primary"/>
-                                </IconButton>
-                                
-                                {row.status === 'Completed' && (
-                                  <IconButton onClick={() => handleOpenReview(row)} sx={{ bgcolor: '#e8f5e9', '&:hover': { bgcolor: '#c8e6c9' } }}>
-                                    <RateReviewIcon color="success"/>
+                                <Tooltip title="View Details">
+                                  <IconButton onClick={() => {setSelectedReq(row); setOpenModal(true);}} sx={{ bgcolor: '#f1f3f5', '&:hover': { bgcolor: '#e0e0e0' } }}>
+                                    <VisibilityIcon color="primary"/>
                                   </IconButton>
+                                </Tooltip>
+                                
+                                {/* --- THE FIX: NEW CANCEL BUTTON IN TABLE --- */}
+                                {row.status === 'Pending' && (
+                                  <Tooltip title="Cancel Request">
+                                    <IconButton onClick={() => handleOpenCancel(row)} sx={{ bgcolor: '#ffebee', '&:hover': { bgcolor: '#ffcdd2' } }}>
+                                      <CancelIcon color="error"/>
+                                    </IconButton>
+                                  </Tooltip>
+                                )}
+
+                                {row.status === 'Completed' && (
+                                  <Tooltip title="Leave a Review">
+                                    <IconButton onClick={() => handleOpenReview(row)} sx={{ bgcolor: '#e8f5e9', '&:hover': { bgcolor: '#c8e6c9' } }}>
+                                      <RateReviewIcon color="success"/>
+                                    </IconButton>
+                                  </Tooltip>
                                 )}
                               </Box>
                             </TableCell>
@@ -322,7 +360,6 @@ export default function CustomerDashboard() {
             </Paper>
           </Grid>
 
-          {/* --- SIDEBAR --- */}
           <Grid size={{ xs: 12, md: 4 }}>
             
             <Paper elevation={0} sx={{ p: 4, borderRadius: 4, border: '1px solid #e0e0e0', mb: 4 }}>
@@ -365,7 +402,7 @@ export default function CustomerDashboard() {
         </Grid>
       </Box>
 
-      {/* --- REVIEW SUBMISSION MODAL WITH DIRECT UPLOAD --- */}
+      {/* --- REVIEW SUBMISSION MODAL --- */}
       <Dialog open={reviewModalOpen} onClose={() => setReviewModalOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ fontWeight: 'bold', bgcolor: '#1a237e', color: 'white', py: 2.5, display: 'flex', alignItems: 'center', gap: 1 }}>
           <RateReviewIcon /> RATE YOUR EXPERIENCE
@@ -434,7 +471,25 @@ export default function CustomerDashboard() {
         </DialogActions>
       </Dialog>
 
-      {/* --- REDESIGNED AGREEMENT DETAILS MODAL WITH SPECS --- */}
+      {/* --- NEW: CANCEL CONFIRMATION MODAL --- */}
+      <Dialog open={cancelModalOpen} onClose={() => setCancelModalOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 'bold', bgcolor: '#d32f2f', color: 'white', textAlign: 'center' }}>
+          Cancel Booking Request
+        </DialogTitle>
+        <DialogContent dividers sx={{ p: 4, textAlign: 'center' }}>
+          <CancelIcon sx={{ fontSize: 70, color: '#d32f2f', mb: 2 }} />
+          <Typography variant="h6" fontWeight="900" gutterBottom>Are you sure?</Typography>
+          <Typography variant="body2" color="text.secondary">
+            This will permanently cancel your request for the <strong>{rentalToCancel?.forklift?.make} {rentalToCancel?.forklift?.model}</strong>. You will need to submit a new request if you change your mind.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ p: 3, justifyContent: 'center', gap: 2, bgcolor: '#f8f9fa' }}>
+          <Button onClick={() => setCancelModalOpen(false)} sx={{ fontWeight: 'bold', color: 'text.secondary' }}>Keep Booking</Button>
+          <Button onClick={executeCancelBooking} variant="contained" color="error" sx={{ fontWeight: 'bold', px: 4 }}>Yes, Cancel It</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* --- AGREEMENT DETAILS MODAL --- */}
       <Dialog open={openModal} onClose={() => setOpenModal(false)} fullWidth maxWidth="md">
         <DialogTitle sx={{ fontWeight: 'bold', bgcolor: '#1a237e', color: 'white', py: 2.5 }}>
           AGREEMENT DETAILS
@@ -488,8 +543,7 @@ export default function CustomerDashboard() {
                             <Typography variant="h6" fontWeight="900">{new Date(selectedReq.endDate).toLocaleDateString()}</Typography>
                         </Box>
                     </Stack>
-
-                    {/* MODAL DATES WITH EARLY/LATE DISPLAY */}
+                    
                     {selectedReq.status === 'Completed' && selectedReq.actualReturnDate && (
                       <Box sx={{ mt: 2, pt: 2, borderTop: '2px dashed #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <Box>
@@ -539,6 +593,21 @@ export default function CustomerDashboard() {
                    </Grid>
                 </Paper>
               </Grid>
+
+              {/* --- THE FIX: NEW CANCEL SECTION INSIDE MODAL --- */}
+              {selectedReq.status === 'Pending' && (
+                <Grid size={{ xs: 12 }}>
+                  <Paper elevation={0} sx={{ p: 3, mt: 2, bgcolor: '#ffebee', borderRadius: 4, border: '1px solid #ffcdd2', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Box>
+                        <Typography variant="body1" fontWeight="bold" color="#c62828">Change of Plans?</Typography>
+                        <Typography variant="body2" color="text.secondary">You can safely cancel this booking before it is approved.</Typography>
+                      </Box>
+                      <Button variant="contained" color="error" startIcon={<CancelIcon />} onClick={() => handleOpenCancel(selectedReq)} sx={{ fontWeight: 'bold', boxShadow: 'none' }}>
+                        CANCEL BOOKING
+                      </Button>
+                  </Paper>
+                </Grid>
+              )}
 
               {selectedReq.status === 'Rejected' && selectedReq.rejectionReason && (
                 <Grid size={{ xs: 12 }}>
