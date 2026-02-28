@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import axios from 'axios';
+import axios from '../utils/axiosInstance';
 import { 
   Box, Paper, Typography, Button, Snackbar, Alert, 
   Divider, IconButton, Stack, Card, CardMedia, List, ListItem, ListItemIcon, ListItemText

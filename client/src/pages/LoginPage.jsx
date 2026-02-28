@@ -5,16 +5,13 @@ import {
   Snackbar, Alert, CircularProgress, Avatar 
 } from '@mui/material';
 import { styled } from '@mui/system';
-import axios from 'axios';
+import axios from '../utils/axiosInstance';
 import { useNavigate } from 'react-router-dom';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import ReCAPTCHA from "react-google-recaptcha";
-
-// Logo Import
-import RedBrickLogo from '../assets/RedBrickLogo.png'; 
 
 const BackgroundBox = styled(Box)({
   height: '100vh',
@@ -111,7 +108,9 @@ export default function LoginPage() {
       : { firstName, lastName, email, phone, address, password, captchaToken };
 
     try {
-      const res = await axios.post(`http://localhost:5000/api/auth${endpoint}`, payload);
+      // THE FIX: Dynamically pull the API URL from Netlify, or default to localhost for dev
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const res = await axios.post(`${API_URL}/api/auth${endpoint}`, payload);
       
       if (isLogin) {
         localStorage.setItem('userInfo', JSON.stringify(res.data));
@@ -157,10 +156,9 @@ export default function LoginPage() {
       <Overlay />
       
       <LoginPaper elevation={24}>
-        {/* --- ROUNDED LOGO SECTION --- */}
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 4 }}>
           <Avatar 
-            src={RedBrickLogo} 
+            src="/RedBrickLogo.png" 
             alt="Red Brick Logo" 
             sx={{ 
               width: 140, 
@@ -169,7 +167,7 @@ export default function LoginPage() {
               boxShadow: '0 8px 20px rgba(0,0,0,0.15)',
               backgroundColor: 'white',
               border: '2px solid #eee',
-              '& img': { objectFit: 'contain', p: 1 } // Adds padding inside the circle so text isn't cut off
+              '& img': { objectFit: 'contain', p: 1 } 
             }} 
           />
           <Typography variant="overline" sx={{ fontWeight: 'bold', color: 'text.secondary', letterSpacing: 2 }}>
@@ -197,10 +195,10 @@ export default function LoginPage() {
           )}
 
           {!isLogin && (
-             <Stack direction="row" spacing={2} sx={{ mt: 1 }}>
+             <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
                <TextField fullWidth label="Phone" margin="dense" required size="small" value={phone} onChange={(e) => /^\d*$/.test(e.target.value) && setPhone(e.target.value)} inputProps={{ maxLength: 11 }} />
                <TextField fullWidth label="Address" margin="dense" required size="small" value={address} onChange={(e) => setAddress(e.target.value)} />
-             </Stack>
+             </Box>
           )}
 
           <TextField fullWidth label="Email Address" margin="normal" type="email" required size="small" value={email} onChange={(e) => setEmail(e.target.value)} />
@@ -234,7 +232,6 @@ export default function LoginPage() {
             </>
           )}
 
-          {/* THE FIX: CONNECTED YOUR UNIQUE RECAPTCHA SITE KEY */}
           <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center', transform: 'scale(0.9)' }}>
             <ReCAPTCHA 
               ref={recaptchaRef} 

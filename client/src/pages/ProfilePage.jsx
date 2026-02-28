@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import axios from '../utils/axiosInstance';
 import {
   Box, Paper, Typography, TextField, Button, Avatar,
   InputAdornment, IconButton, Snackbar, Alert, Divider, Stack
