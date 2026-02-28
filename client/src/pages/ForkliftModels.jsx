@@ -6,7 +6,7 @@ import {
   CardContent, Chip, InputAdornment, List, ListItem, 
   ListItemIcon, ListItemText, Dialog, DialogTitle, DialogContent, 
   DialogActions, IconButton, Stack, MenuItem, Select, FormControl, InputLabel,
-  Rating, Avatar, Divider // <-- NEW IMPORTS FOR REVIEWS
+  Rating, Avatar, Divider, Pagination // <-- NEW IMPORT: Pagination
 } from '@mui/material';
 import Navbar from '../components/Navbar';
 
@@ -35,6 +35,10 @@ export default function ForkliftModels() {
   const [selectedModel, setSelectedModel] = useState(null);
   const [openModal, setOpenModal] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0); 
+  
+  // --- NEW: Review Pagination State ---
+  const [reviewPage, setReviewPage] = useState(1);
+  const REVIEWS_PER_PAGE = 5;
 
   useEffect(() => {
     const fetchModels = async () => {
@@ -62,6 +66,7 @@ export default function ForkliftModels() {
   const handleOpenModal = (model) => {
     setSelectedModel(model);
     setActiveImageIndex(0); 
+    setReviewPage(1); // Reset reviews to page 1
     setOpenModal(true);
   };
 
@@ -75,6 +80,7 @@ export default function ForkliftModels() {
     const nextIndex = (currentIndex + 1) % filteredModels.length; 
     setSelectedModel(filteredModels[nextIndex]);
     setActiveImageIndex(0); 
+    setReviewPage(1); // Reset reviews to page 1
   };
 
   const handlePrev = () => {
@@ -82,6 +88,7 @@ export default function ForkliftModels() {
     const prevIndex = (currentIndex - 1 + filteredModels.length) % filteredModels.length; 
     setSelectedModel(filteredModels[prevIndex]);
     setActiveImageIndex(0); 
+    setReviewPage(1); // Reset reviews to page 1
   };
 
   const getModelImages = (model) => {
@@ -104,6 +111,15 @@ export default function ForkliftModels() {
 
   const activeImagesArray = getModelImages(selectedModel);
   const isBookable = selectedModel ? (selectedModel.status === 'Available' || selectedModel.status === 'Rented') : false;
+
+  // --- NEW: Calculate Pagination Variables ---
+  const reviewCount = selectedModel?.reviews?.length || 0;
+  const reviewPageCount = Math.max(1, Math.ceil(reviewCount / REVIEWS_PER_PAGE));
+  const displayedReviews = selectedModel?.reviews 
+    ? [...selectedModel.reviews]
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)) // Show newest first
+        .slice((reviewPage - 1) * REVIEWS_PER_PAGE, reviewPage * REVIEWS_PER_PAGE)
+    : [];
 
   return (
     <Box sx={{ minHeight: '100vh', backgroundColor: '#f4f6f8', pb: 8 }}>
@@ -189,7 +205,6 @@ export default function ForkliftModels() {
                   <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
                     <Typography variant="h6" fontWeight="900" sx={{ lineHeight: 1.2 }}>{model.make} {model.model}</Typography>
                     
-                    {/* --- NEW: STAR RATING DISPLAY ON CARD --- */}
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                         <Rating value={model.rating || 0} readOnly size="small" precision={0.5} emptyIcon={<StarIcon style={{ opacity: 0.55 }} fontSize="inherit" />} />
                         <Typography variant="caption" color="text.secondary" fontWeight="bold">
@@ -282,7 +297,6 @@ export default function ForkliftModels() {
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
                   <Box>
                     <Typography variant="h4" fontWeight="900" color="#1a237e">{selectedModel.make} {selectedModel.model}</Typography>
-                    {/* --- NEW: STAR RATING DISPLAY IN MODAL --- */}
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
                         <Rating value={selectedModel.rating || 0} readOnly size="small" precision={0.5} />
                         <Typography variant="body2" color="text.secondary" fontWeight="bold">
@@ -314,50 +328,63 @@ export default function ForkliftModels() {
                   </ListItem>
                 </List>
 
-                {/* --- NEW: CUSTOMER REVIEWS SECTION --- */}
+                {/* CUSTOMER REVIEWS SECTION */}
                 <Divider sx={{ my: 4 }} />
                 <Typography variant="h6" fontWeight="900" color="#1a237e" sx={{ mb: 3 }}>
                     VERIFIED CUSTOMER REVIEWS
                 </Typography>
 
-                {selectedModel.reviews && selectedModel.reviews.length > 0 ? (
-                    <Stack spacing={3}>
-                        {selectedModel.reviews.map((review, idx) => (
-                            <Box key={idx} sx={{ p: 3, bgcolor: '#f8f9fa', borderRadius: 3, border: '1px solid #e0e0e0' }}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1.5 }}>
-                                    <Avatar sx={{ width: 40, height: 40, bgcolor: '#1a237e', fontWeight: 'bold' }}>
-                                        {review.name.charAt(0)}
-                                    </Avatar>
-                                    <Box>
-                                        <Typography variant="subtitle1" fontWeight="bold" sx={{ lineHeight: 1.2 }}>{review.name}</Typography>
-                                        <Rating value={review.rating} readOnly size="small" sx={{ mt: 0.5 }} />
+                {reviewCount > 0 ? (
+                    <>
+                        <Stack spacing={3}>
+                            {displayedReviews.map((review, idx) => (
+                                <Box key={idx} sx={{ p: 3, bgcolor: '#f8f9fa', borderRadius: 3, border: '1px solid #e0e0e0' }}>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1.5 }}>
+                                        <Avatar sx={{ width: 40, height: 40, bgcolor: '#1a237e', fontWeight: 'bold' }}>
+                                            {review.name.charAt(0)}
+                                        </Avatar>
+                                        <Box>
+                                            <Typography variant="subtitle1" fontWeight="bold" sx={{ lineHeight: 1.2 }}>{review.name}</Typography>
+                                            <Rating value={review.rating} readOnly size="small" sx={{ mt: 0.5 }} />
+                                        </Box>
+                                        <Typography variant="caption" color="text.secondary" sx={{ ml: 'auto', alignSelf: 'flex-start' }}>
+                                            {new Date(review.createdAt).toLocaleDateString()}
+                                        </Typography>
                                     </Box>
-                                    <Typography variant="caption" color="text.secondary" sx={{ ml: 'auto', alignSelf: 'flex-start' }}>
-                                        {new Date(review.createdAt).toLocaleDateString()}
+                                    
+                                    <Typography variant="body1" color="text.primary" sx={{ mt: 1 }}>
+                                        "{review.comment}"
                                     </Typography>
-                                </Box>
-                                
-                                <Typography variant="body1" color="text.primary" sx={{ mt: 1 }}>
-                                    "{review.comment}"
-                                </Typography>
 
-                                {/* Display uploaded customer images if they exist */}
-                                {review.images && review.images.length > 0 && (
-                                    <Box sx={{ display: 'flex', gap: 1.5, mt: 2 }}>
-                                        {review.images.map((img, imgIdx) => (
-                                            <Avatar 
-                                              key={imgIdx} 
-                                              src={img} 
-                                              variant="rounded" 
-                                              sx={{ width: 80, height: 80, border: '1px solid #ccc', cursor: 'pointer' }} 
-                                              onClick={() => window.open(img, '_blank')}
-                                            />
-                                        ))}
-                                    </Box>
-                                )}
+                                    {review.images && review.images.length > 0 && (
+                                        <Box sx={{ display: 'flex', gap: 1.5, mt: 2 }}>
+                                            {review.images.map((img, imgIdx) => (
+                                                <Avatar 
+                                                  key={imgIdx} 
+                                                  src={img} 
+                                                  variant="rounded" 
+                                                  sx={{ width: 80, height: 80, border: '1px solid #ccc', cursor: 'pointer' }} 
+                                                  onClick={() => window.open(img, '_blank')}
+                                                />
+                                            ))}
+                                        </Box>
+                                    )}
+                                </Box>
+                            ))}
+                        </Stack>
+                        
+                        {/* --- NEW: PAGINATION COMPONENT --- */}
+                        {reviewPageCount > 1 && (
+                            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4, pt: 2 }}>
+                                <Pagination 
+                                    count={reviewPageCount} 
+                                    page={reviewPage} 
+                                    onChange={(e, value) => setReviewPage(value)} 
+                                    color="primary" 
+                                />
                             </Box>
-                        ))}
-                    </Stack>
+                        )}
+                    </>
                 ) : (
                     <Box sx={{ p: 3, textAlign: 'center', bgcolor: '#f1f3f5', borderRadius: 3 }}>
                         <Typography variant="body1" color="text.secondary" fontWeight="bold">
