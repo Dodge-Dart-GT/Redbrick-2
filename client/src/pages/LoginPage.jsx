@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   TextField, Button, Box, Typography, Paper, Grid, Link, 
-  List, ListItem, ListItemIcon, ListItemText, InputAdornment, IconButton, Alert
+  List, ListItem, ListItemIcon, ListItemText, InputAdornment, IconButton, 
+  Snackbar, Alert, CircularProgress, Avatar 
 } from '@mui/material';
 import { styled } from '@mui/system';
 import axios from 'axios';
@@ -10,8 +11,11 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
+import ReCAPTCHA from "react-google-recaptcha";
 
-// Styled Components
+// Logo Import
+import RedBrickLogo from '../assets/RedBrickLogo.png'; 
+
 const BackgroundBox = styled(Box)({
   height: '100vh',
   backgroundImage: 'url(https://images.unsplash.com/photo-1587293852726-70cdb56c2866?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80)',
@@ -20,6 +24,7 @@ const BackgroundBox = styled(Box)({
   display: 'flex',
   justifyContent: 'center',
   alignItems: 'center',
+  position: 'relative'
 });
 
 const Overlay = styled(Box)({
@@ -28,24 +33,30 @@ const Overlay = styled(Box)({
   left: 0,
   width: '100%',
   height: '100%',
-  backgroundColor: 'rgba(0, 0, 0, 0.6)',
+  backgroundColor: 'rgba(0, 0, 0, 0.65)',
 });
 
 const LoginPaper = styled(Paper)({
   padding: '40px',
   width: '100%',
-  maxWidth: '450px',
+  maxWidth: '480px',
   zIndex: 2,
-  backgroundColor: 'rgba(255, 255, 255, 0.95)',
-  borderRadius: '12px',
-  maxHeight: '90vh',
-  overflowY: 'auto'
+  backgroundColor: 'rgba(255, 255, 255, 0.98)',
+  borderRadius: '16px',
+  maxHeight: '92vh',
+  overflowY: 'auto',
+  boxShadow: '0 20px 40px rgba(0,0,0,0.4)'
 });
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const recaptchaRef = useRef();
   const [isLogin, setIsLogin] = useState(true);
+  const [loading, setLoading] = useState(false);
   
+  // Notification State
+  const [notification, setNotification] = useState({ open: false, message: '', severity: 'info' });
+
   // Form State
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -54,16 +65,11 @@ export default function LoginPage() {
   const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
-
+  const [captchaToken, setCaptchaToken] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
 
-  // Validation State
   const [validations, setValidations] = useState({
-    hasUpper: false,
-    hasLower: false,
-    hasNumber: false,
-    hasSpecial: false,
-    hasLength: false
+    hasUpper: false, hasLower: false, hasNumber: false, hasSpecial: false, hasLength: false
   });
 
   useEffect(() => {
@@ -79,77 +85,69 @@ export default function LoginPage() {
   const isPasswordValid = Object.values(validations).every(Boolean);
   const doPasswordsMatch = password === confirmPassword;
 
-  const handlePhoneChange = (e) => {
-    const value = e.target.value;
-    if (/^\d*$/.test(value)) {
-      setPhone(value);
-    }
+  const handleNotify = (message, severity = 'info') => {
+    setNotification({ open: true, message, severity });
   };
 
-  const handleClickShowPassword = () => setShowPassword((show) => !show);
+  const handleCloseNotify = () => setNotification({ ...notification, open: false });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!isLogin) {
-      if (!isPasswordValid) {
-        alert("Please ensure your password meets all requirements.");
-        return;
-      }
-      if (!doPasswordsMatch) {
-        alert("Passwords do not match!");
-        return;
-      }
+    if (!captchaToken) {
+      handleNotify("Please complete the CAPTCHA verification.", "warning");
+      return;
     }
 
+    if (!isLogin) {
+      if (!isPasswordValid) return handleNotify("Password does not meet requirements.", "error");
+      if (!doPasswordsMatch) return handleNotify("Passwords do not match!", "error");
+    }
+
+    setLoading(true);
     const endpoint = isLogin ? '/login' : '/register';
     const payload = isLogin 
-      ? { email, password }
-      : { firstName, lastName, email, phone, address, password };
+      ? { email, password, captchaToken }
+      : { firstName, lastName, email, phone, address, password, captchaToken };
 
     try {
       const res = await axios.post(`http://localhost:5000/api/auth${endpoint}`, payload);
       
       if (isLogin) {
-        alert("Login Successful!");
         localStorage.setItem('userInfo', JSON.stringify(res.data));
+        handleNotify("Login Successful! Redirecting...", "success");
         
-        // --- THE FIX: Routing Admins/Staff to their specific Command Center! ---
-        const userRole = res.data.role;
-        
-        if (userRole === 'owner') {
-            navigate('/owner-dashboard');      
-        } else if (userRole === 'admin' || userRole === 'staff') {
-            navigate('/admin-dashboard');
-        } else {
-            navigate('/dashboard'); 
-        }
-
+        setTimeout(() => {
+            const role = res.data.role;
+            if (role === 'owner') navigate('/owner-dashboard');      
+            else if (role === 'admin' || role === 'staff') navigate('/admin-dashboard');
+            else navigate('/dashboard'); 
+        }, 1000);
       } else {
-        alert("Registration Successful! Please Login.");
+        handleNotify("Account created! You can now log in.", "success");
         setIsLogin(true);
         setPassword('');
         setConfirmPassword('');
+        setCaptchaToken(null);
+        if(recaptchaRef.current) recaptchaRef.current.reset();
       }
-
     } catch (err) {
-      console.error(err);
-      alert("Error: " + (err.response?.data?.message || err.message));
+      handleNotify(err.response?.data?.message || "An unexpected error occurred.", "error");
+      setCaptchaToken(null);
+      if(recaptchaRef.current) recaptchaRef.current.reset();
+    } finally {
+      setLoading(false);
     }
   };
 
   const ValidationItem = ({ valid, text }) => (
-    <ListItem dense sx={{ py: 0 }}>
-      <ListItemIcon sx={{ minWidth: 30 }}>
-        {valid ? <CheckCircleIcon color="success" fontSize="small" /> : <CancelIcon color="error" fontSize="small" />}
+    <ListItem dense sx={{ py: 0.2 }}>
+      <ListItemIcon sx={{ minWidth: 28 }}>
+        {valid ? <CheckCircleIcon color="success" sx={{ fontSize: 16 }} /> : <CancelIcon color="error" sx={{ fontSize: 16 }} />}
       </ListItemIcon>
       <ListItemText 
         primary={text} 
-        primaryTypographyProps={{ 
-          variant: 'caption', 
-          color: valid ? 'success.main' : 'error.main',
-          fontWeight: valid ? 'bold' : 'regular'
-        }} 
+        primaryTypographyProps={{ variant: 'caption', color: valid ? 'success.main' : 'text.secondary', fontWeight: valid ? 'bold' : 'normal' }} 
       />
     </ListItem>
   );
@@ -158,76 +156,62 @@ export default function LoginPage() {
     <BackgroundBox>
       <Overlay />
       
-      <LoginPaper elevation={10}>
-        <Box textAlign="center" mb={3}>
-          <Typography variant="h4" fontWeight="bold" color="primary" sx={{ fontFamily: 'Oswald' }}>
-            RED BRICK
-          </Typography>
-          <Typography variant="subtitle1" color="textSecondary">
-            HEAVY EQUIPMENT RENTALS
+      <LoginPaper elevation={24}>
+        {/* --- ROUNDED LOGO SECTION --- */}
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 4 }}>
+          <Avatar 
+            src={RedBrickLogo} 
+            alt="Red Brick Logo" 
+            sx={{ 
+              width: 140, 
+              height: 140, 
+              mb: 2, 
+              boxShadow: '0 8px 20px rgba(0,0,0,0.15)',
+              backgroundColor: 'white',
+              border: '2px solid #eee',
+              '& img': { objectFit: 'contain', p: 1 } // Adds padding inside the circle so text isn't cut off
+            }} 
+          />
+          <Typography variant="overline" sx={{ fontWeight: 'bold', color: 'text.secondary', letterSpacing: 2 }}>
+            Rental Management System
           </Typography>
         </Box>
 
-        <Typography variant="h5" fontWeight="bold" gutterBottom>
-          {isLogin ? 'Welcome Back' : 'Create Account'}
+        <Typography variant="h5" fontWeight="900" sx={{ mb: 1, color: '#1a237e' }}>
+          {isLogin ? 'Welcome Back' : 'Create an Account'}
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+          {isLogin ? 'Enter your credentials to access your dashboard.' : 'Fill in the details below to start renting equipment.'}
         </Typography>
 
         <form onSubmit={handleSubmit}>
           {!isLogin && (
             <Grid container spacing={2}>
               <Grid item xs={6}>
-                <TextField 
-                  fullWidth label="First Name" margin="normal" required size="small"
-                  value={firstName} onChange={(e) => setFirstName(e.target.value)} 
-                />
+                <TextField fullWidth label="First Name" margin="dense" required size="small" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
               </Grid>
               <Grid item xs={6}>
-                <TextField 
-                  fullWidth label="Last Name" margin="normal" required size="small"
-                  value={lastName} onChange={(e) => setLastName(e.target.value)} 
-                />
+                <TextField fullWidth label="Last Name" margin="dense" required size="small" value={lastName} onChange={(e) => setLastName(e.target.value)} />
               </Grid>
             </Grid>
           )}
 
           {!isLogin && (
-             <>
-               <TextField 
-                 fullWidth label="Phone Number" margin="normal" required size="small"
-                 value={phone} 
-                 onChange={handlePhoneChange} 
-                 inputProps={{ maxLength: 11 }} 
-               />
-               <TextField 
-                 fullWidth label="Address" margin="normal" required size="small"
-                 value={address} onChange={(e) => setAddress(e.target.value)} 
-               />
-             </>
+             <Stack direction="row" spacing={2} sx={{ mt: 1 }}>
+               <TextField fullWidth label="Phone" margin="dense" required size="small" value={phone} onChange={(e) => /^\d*$/.test(e.target.value) && setPhone(e.target.value)} inputProps={{ maxLength: 11 }} />
+               <TextField fullWidth label="Address" margin="dense" required size="small" value={address} onChange={(e) => setAddress(e.target.value)} />
+             </Stack>
           )}
 
-          <TextField 
-            fullWidth label="Email Address" margin="normal" type="email" required size="small"
-            value={email} onChange={(e) => setEmail(e.target.value)} 
-          />
+          <TextField fullWidth label="Email Address" margin="normal" type="email" required size="small" value={email} onChange={(e) => setEmail(e.target.value)} />
           
           <TextField 
-            fullWidth 
-            label="Password" 
-            margin="normal" 
-            type={showPassword ? 'text' : 'password'} 
-            required 
-            size="small"
-            value={password} 
-            onChange={(e) => setPassword(e.target.value)} 
-            error={!isLogin && !isPasswordValid && password.length > 0}
+            fullWidth label="Password" margin="normal" type={showPassword ? 'text' : 'password'} required size="small"
+            value={password} onChange={(e) => setPassword(e.target.value)} 
             InputProps={{
               endAdornment: (
                 <InputAdornment position="end">
-                  <IconButton
-                    aria-label="toggle password visibility"
-                    onClick={handleClickShowPassword}
-                    edge="end"
-                  >
+                  <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
                     {showPassword ? <VisibilityOff /> : <Visibility />}
                   </IconButton>
                 </InputAdornment>
@@ -236,63 +220,56 @@ export default function LoginPage() {
           />
 
           {!isLogin && (
-            <TextField 
-              fullWidth 
-              label="Confirm Password" 
-              margin="normal" 
-              type="password"
-              required 
-              size="small"
-              value={confirmPassword} 
-              onChange={(e) => setConfirmPassword(e.target.value)} 
-              error={confirmPassword.length > 0 && !doPasswordsMatch}
-              helperText={confirmPassword.length > 0 && !doPasswordsMatch ? "Passwords do not match" : ""}
-            />
+            <>
+              <TextField fullWidth label="Confirm Password" margin="dense" type="password" required size="small" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} error={confirmPassword.length > 0 && !doPasswordsMatch} />
+              <Box sx={{ mt: 2, p: 1.5, bgcolor: '#f8f9fa', borderRadius: 2, border: '1px solid #eee' }}>
+                <Typography variant="caption" fontWeight="bold" color="primary">Password Requirements:</Typography>
+                <List dense sx={{ mt: 0.5 }}>
+                  <ValidationItem valid={validations.hasLength} text="Minimum 8 characters" />
+                  <ValidationItem valid={validations.hasUpper} text="Include Uppercase (A-Z)" />
+                  <ValidationItem valid={validations.hasNumber} text="Include Numbers (0-9)" />
+                  <ValidationItem valid={doPasswordsMatch && confirmPassword.length > 0} text="Passwords Match" />
+                </List>
+              </Box>
+            </>
           )}
 
-          {!isLogin && (
-            <Box sx={{ mt: 1, p: 1, bgcolor: '#f5f5f5', borderRadius: 1 }}>
-              <Typography variant="caption" fontWeight="bold" sx={{ ml: 1 }}>
-                Password Requirements:
-              </Typography>
-              <List dense>
-                <ValidationItem valid={validations.hasLength} text="At least 8 characters" />
-                <ValidationItem valid={validations.hasUpper} text="One Uppercase letter (A-Z)" />
-                <ValidationItem valid={validations.hasLower} text="One Lowercase letter (a-z)" />
-                <ValidationItem valid={validations.hasNumber} text="One Number (0-9)" />
-                <ValidationItem valid={validations.hasSpecial} text="One Special Character (!@#...)" />
-                <ValidationItem valid={doPasswordsMatch && confirmPassword.length > 0} text="Passwords Match" />
-              </List>
-            </Box>
-          )}
+          {/* THE FIX: CONNECTED YOUR UNIQUE RECAPTCHA SITE KEY */}
+          <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center', transform: 'scale(0.9)' }}>
+            <ReCAPTCHA 
+              ref={recaptchaRef} 
+              sitekey="6Lda3XosAAAAAGe7MOWYkgRq_CzMrl3kCQoolnDD" 
+              onChange={setCaptchaToken} 
+            />
+          </Box>
 
           <Button 
-            type="submit" 
-            fullWidth 
-            variant="contained" 
-            size="large"
-            disabled={!isLogin && (!isPasswordValid || !doPasswordsMatch)}
-            sx={{ mt: 3, mb: 2, fontWeight: 'bold', backgroundColor: '#1a237e' }}
+            type="submit" fullWidth variant="contained" size="large"
+            disabled={loading || !captchaToken || (!isLogin && (!isPasswordValid || !doPasswordsMatch))}
+            sx={{ mt: 4, mb: 2, py: 1.5, fontWeight: 'bold', backgroundColor: '#1a237e', borderRadius: '8px', boxShadow: '0 4px 12px rgba(26, 35, 126, 0.3)' }}
           >
-            {isLogin ? 'LOGIN' : 'REGISTER'}
+            {loading ? <CircularProgress size={24} color="inherit" /> : (isLogin ? 'SIGN IN' : 'CREATE ACCOUNT')}
           </Button>
         </form>
 
         <Box textAlign="center" mt={2}>
-          <Typography variant="body2">
-            {isLogin ? "Don't have an account? " : "Already have an account? "}
+          <Typography variant="body2" color="text.secondary">
+            {isLogin ? "New to Red Brick? " : "Already have an account? "}
             <Link 
-              component="button" 
-              variant="body2" 
-              fontWeight="bold"
-              onClick={() => setIsLogin(!isLogin)}
+              component="button" variant="body2" fontWeight="900"
+              onClick={() => { setIsLogin(!isLogin); setCaptchaToken(null); if(recaptchaRef.current) recaptchaRef.current.reset(); }}
             >
               {isLogin ? 'Sign Up' : 'Log In'}
             </Link>
           </Typography>
         </Box>
-
       </LoginPaper>
+
+      <Snackbar open={notification.open} autoHideDuration={5000} onClose={handleCloseNotify} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+        <Alert onClose={handleCloseNotify} severity={notification.severity} sx={{ width: '100%', fontWeight: 'bold', borderRadius: '8px' }} variant="filled">
+          {notification.message}
+        </Alert>
+      </Snackbar>
     </BackgroundBox>
   );
 }
