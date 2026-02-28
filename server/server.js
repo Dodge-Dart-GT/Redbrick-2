@@ -13,7 +13,7 @@ const uploadRoutes = require('./routes/uploadRoutes');
 const forkliftRoutes = require('./routes/forkliftRoutes'); 
 const rentalRoutes = require('./routes/rentalRoutes');    
 const userRoutes = require('./routes/userRoutes');
-const analyticsRoutes = require('./routes/analyticsRoutes'); // <-- NEW ROUTE IMPORTED
+const analyticsRoutes = require('./routes/analyticsRoutes');
 
 // 2. Connect to Database
 connectDB();
@@ -21,7 +21,21 @@ connectDB();
 const app = express();
 
 // 3. Middleware
-app.use(cors());
+// THE FIX: Secure CORS Configuration for Render & Netlify Deployment
+const allowedOrigins = ['http://localhost:5173', process.env.FRONTEND_URL];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like Postman during testing) or if the origin is in our allowed list
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
+}));
+
 app.use(express.json()); // Allows server to read JSON data
 
 // 4. Routes
@@ -30,11 +44,11 @@ app.use('/api/upload', uploadRoutes);     // Image Uploads (Cloudinary)
 app.use('/api/forklifts', forkliftRoutes);// Manage Forklift Inventory
 app.use('/api/rentals', rentalRoutes);    // Manage Rental Requests
 app.use('/api/users', userRoutes);
-app.use('/api/analytics', analyticsRoutes); // <-- NEW ROUTE REGISTERED
+app.use('/api/analytics', analyticsRoutes); // Analytics Dashboard
 
-// Default Route (To check if server is working)
+// Default Route (To check if server is working live on Render)
 app.get('/', (req, res) => {
-  res.send('API is running...');
+  res.send('Red Brick API is running successfully...');
 });
 
 // 5. Error Handling Middleware
