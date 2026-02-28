@@ -108,9 +108,8 @@ export default function LoginPage() {
       : { firstName, lastName, email, phone, address, password, captchaToken };
 
     try {
-      // THE FIX: Dynamically pull the API URL from Netlify, or default to localhost for dev
-      const API_URL = import.meta.env.VITE_API_URL || '';
-      const res = await axios.post(`${API_URL}/api/auth${endpoint}`, payload);
+      // Cleanest approach: Let the axiosInstance handle the base URL automatically!
+      const res = await axios.post(`/api/auth${endpoint}`, payload);
       
       if (isLogin) {
         localStorage.setItem('userInfo', JSON.stringify(res.data));
