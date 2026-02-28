@@ -100,6 +100,17 @@ export default function CustomerDashboard() {
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; 
   };
 
+  // --- NEW: LOGIC TO CALCULATE EARLY/LATE/ON-TIME ---
+  const getReturnStatus = (expectedEnd, actualReturn) => {
+    if (!actualReturn) return null;
+    const expected = new Date(expectedEnd).setHours(0,0,0,0);
+    const returned = new Date(actualReturn).setHours(0,0,0,0);
+    
+    if (returned < expected) return { label: 'Returned Early', color: '#2e7d32', bg: '#e8f5e9' }; 
+    if (returned > expected) return { label: 'Returned Late', color: '#d32f2f', bg: '#ffebee' }; 
+    return { label: 'Returned On Time', color: '#1565c0', bg: '#e3f2fd' }; 
+  };
+
   const filteredRentals = myRentals.filter(r => 
     (r.forklift?.model || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
     (r.forklift?.make || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -222,58 +233,76 @@ export default function CustomerDashboard() {
                     <TableRow>
                       <TableCell sx={{ fontWeight: 'bold', py: 2 }}>REF ID</TableCell>
                       <TableCell sx={{ fontWeight: 'bold', py: 2 }}>EQUIPMENT</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold', py: 2 }}>RENT DATE</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold', py: 2 }}>DATES</TableCell>
                       <TableCell sx={{ fontWeight: 'bold', py: 2 }}>STATUS</TableCell>
                       <TableCell align="center" sx={{ fontWeight: 'bold', py: 2 }}>ACTIONS</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {displayedRentals.length > 0 ? (
-                      displayedRentals.map((row) => (
-                        <TableRow key={row._id} hover>
-                          <TableCell sx={{ fontFamily: 'monospace', color: 'text.secondary', py: 2.5 }}>
-                            #{row._id.slice(-6).toUpperCase()}
-                          </TableCell>
-                          
-                          <TableCell sx={{ py: 2.5 }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                <Avatar 
-                                    src={row.forklift?.images?.[0] || row.forklift?.image} 
-                                    variant="rounded" 
-                                    sx={{ width: 55, height: 55, border: '1px solid #eee' }}
-                                >
-                                    <ForkliftIcon />
-                                </Avatar>
-                                <Box>
-                                    <Typography variant="body1" fontWeight="bold">{row.forklift?.make || 'Unknown Make'}</Typography>
-                                    <Typography variant="body2" color="text.secondary">{row.forklift?.model || 'Vehicle Unavailable'}</Typography>
-                                </Box>
-                            </Box>
-                          </TableCell>
+                      displayedRentals.map((row) => {
+                        const returnData = getReturnStatus(row.endDate, row.actualReturnDate);
 
-                          <TableCell sx={{ py: 2.5, fontWeight: '500' }}>
-                              {new Date(row.startDate).toLocaleDateString()}
-                          </TableCell>
-                          
-                          <TableCell sx={{ py: 2.5 }}>
-                            <Chip label={row.status} color={getStatusColor(row.status)} sx={{ fontWeight: 'bold', px: 1 }} />
-                          </TableCell>
-                          
-                          <TableCell align="center" sx={{ py: 2.5 }}>
-                            <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
-                              <IconButton onClick={() => {setSelectedReq(row); setOpenModal(true);}} sx={{ bgcolor: '#f1f3f5', '&:hover': { bgcolor: '#e0e0e0' } }}>
-                                <VisibilityIcon color="primary"/>
-                              </IconButton>
+                        return (
+                          <TableRow key={row._id} hover>
+                            <TableCell sx={{ fontFamily: 'monospace', color: 'text.secondary', py: 2.5 }}>
+                              #{row._id.slice(-6).toUpperCase()}
+                            </TableCell>
+                            
+                            <TableCell sx={{ py: 2.5 }}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                  <Avatar 
+                                      src={row.forklift?.images?.[0] || row.forklift?.image} 
+                                      variant="rounded" 
+                                      sx={{ width: 55, height: 55, border: '1px solid #eee' }}
+                                  >
+                                      <ForkliftIcon />
+                                  </Avatar>
+                                  <Box>
+                                      <Typography variant="body1" fontWeight="bold">{row.forklift?.make || 'Unknown Make'}</Typography>
+                                      <Typography variant="body2" color="text.secondary">{row.forklift?.model || 'Vehicle Unavailable'}</Typography>
+                                  </Box>
+                              </Box>
+                            </TableCell>
+
+                            {/* TABLE DATES WITH EARLY/LATE BADGE */}
+                            <TableCell sx={{ py: 2.5 }}>
+                              <Typography variant="body2" fontWeight="bold" color="text.primary">
+                                Out: {row.startDate ? new Date(row.startDate).toLocaleDateString() : 'N/A'}
+                              </Typography>
                               
-                              {row.status === 'Completed' && (
-                                <IconButton onClick={() => handleOpenReview(row)} sx={{ bgcolor: '#e8f5e9', '&:hover': { bgcolor: '#c8e6c9' } }}>
-                                  <RateReviewIcon color="success"/>
-                                </IconButton>
+                              <Typography variant="body2" fontWeight="bold" color={row.status === 'Active' ? 'error.main' : 'text.secondary'}>
+                                {row.status === 'Completed' ? 'In: ' : 'Due: '} 
+                                {row.status === 'Completed' && row.actualReturnDate 
+                                    ? new Date(row.actualReturnDate).toLocaleDateString() 
+                                    : (row.endDate ? new Date(row.endDate).toLocaleDateString() : 'N/A')}
+                              </Typography>
+
+                              {row.status === 'Completed' && returnData && (
+                                  <Chip label={returnData.label} size="small" sx={{ mt: 0.5, bgcolor: returnData.bg, color: returnData.color, fontWeight: 'bold', fontSize: '0.65rem', height: 20 }} />
                               )}
-                            </Box>
-                          </TableCell>
-                        </TableRow>
-                      ))
+                            </TableCell>
+                            
+                            <TableCell sx={{ py: 2.5 }}>
+                              <Chip label={row.status} color={getStatusColor(row.status)} sx={{ fontWeight: 'bold', px: 1 }} />
+                            </TableCell>
+                            
+                            <TableCell align="center" sx={{ py: 2.5 }}>
+                              <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
+                                <IconButton onClick={() => {setSelectedReq(row); setOpenModal(true);}} sx={{ bgcolor: '#f1f3f5', '&:hover': { bgcolor: '#e0e0e0' } }}>
+                                  <VisibilityIcon color="primary"/>
+                                </IconButton>
+                                
+                                {row.status === 'Completed' && (
+                                  <IconButton onClick={() => handleOpenReview(row)} sx={{ bgcolor: '#e8f5e9', '&:hover': { bgcolor: '#c8e6c9' } }}>
+                                    <RateReviewIcon color="success"/>
+                                  </IconButton>
+                                )}
+                              </Box>
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })
                     ) : (
                       <TableRow>
                         <TableCell colSpan={5} align="center" sx={{ py: 8 }}>
@@ -455,14 +484,33 @@ export default function CustomerDashboard() {
                             <Typography variant="h6" fontWeight="900">{new Date(selectedReq.startDate).toLocaleDateString()}</Typography>
                         </Box>
                         <Box textAlign="right">
-                            <Typography variant="caption" color="text.secondary" fontWeight="bold" textTransform="uppercase">End Date</Typography>
+                            <Typography variant="caption" color="text.secondary" fontWeight="bold" textTransform="uppercase">Expected End</Typography>
                             <Typography variant="h6" fontWeight="900">{new Date(selectedReq.endDate).toLocaleDateString()}</Typography>
                         </Box>
                     </Stack>
-                    <Box sx={{ mt: 3, pt: 3, borderTop: '2px dashed #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Typography variant="body1" fontWeight="bold" color="text.secondary">Total Duration:</Typography>
-                        <Typography variant="h5" color="primary.main" fontWeight="900">{calculateDays(selectedReq.startDate, selectedReq.endDate)} Day(s)</Typography>
-                    </Box>
+
+                    {/* MODAL DATES WITH EARLY/LATE DISPLAY */}
+                    {selectedReq.status === 'Completed' && selectedReq.actualReturnDate && (
+                      <Box sx={{ mt: 2, pt: 2, borderTop: '2px dashed #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <Box>
+                              <Typography variant="caption" color="text.secondary" fontWeight="bold" textTransform="uppercase">Actual Return</Typography>
+                              <Typography variant="h6" fontWeight="900" color="#2e7d32">{new Date(selectedReq.actualReturnDate).toLocaleDateString()}</Typography>
+                          </Box>
+                          <Box textAlign="right">
+                             {(() => {
+                               const rData = getReturnStatus(selectedReq.endDate, selectedReq.actualReturnDate);
+                               return rData ? <Chip label={rData.label} sx={{ bgcolor: rData.bg, color: rData.color, fontWeight: 'bold' }} size="small" /> : null;
+                             })()}
+                          </Box>
+                      </Box>
+                    )}
+
+                    {!selectedReq.actualReturnDate && (
+                      <Box sx={{ mt: 3, pt: 3, borderTop: '2px dashed #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <Typography variant="body1" fontWeight="bold" color="text.secondary">Total Duration:</Typography>
+                          <Typography variant="h5" color="primary.main" fontWeight="900">{calculateDays(selectedReq.startDate, selectedReq.endDate)} Day(s)</Typography>
+                      </Box>
+                    )}
                 </Paper>
               </Grid>
 

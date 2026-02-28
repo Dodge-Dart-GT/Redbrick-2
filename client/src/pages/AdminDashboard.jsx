@@ -26,27 +26,22 @@ export default function AdminDashboard() {
   const [requests, setRequests] = useState([]);
   const [stats, setStats] = useState({ pending: 0, active: 0, completed: 0, total: 0 });
   
-  // View Details Modal State
   const [openModal, setOpenModal] = useState(false);
   const [selectedReq, setSelectedReq] = useState(null);
 
-  // Confirm Completion Modal State
   const [confirmCompleteModal, setConfirmCompleteModal] = useState(false);
   const [rentalToComplete, setRentalToComplete] = useState(null);
 
-  // Rejection Modal State
   const [rejectModal, setRejectModal] = useState(false);
   const [rentalToReject, setRentalToReject] = useState(null);
   const [rejectionReason, setRejectionReason] = useState('');
 
-  // Pagination & Search State
   const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const ITEMS_PER_PAGE = 5;
 
   useEffect(() => {
     const userInfo = JSON.parse(localStorage.getItem('userInfo'));
-    // Security Kick-out if not admin/staff
     if (!userInfo || (userInfo.role !== 'admin' && userInfo.role !== 'staff' && userInfo.role !== 'owner')) {
         navigate('/login');
         return;
@@ -136,6 +131,19 @@ export default function AdminDashboard() {
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
   };
 
+  // --- THE FIX: DYNAMIC EARLY/LATE CALCULATION ---
+  const getReturnStatus = (expectedEnd, actualReturn) => {
+    if (!actualReturn) return null;
+    
+    // Normalize to compare just the calendar days (ignore exact hours/minutes)
+    const expected = new Date(expectedEnd).setHours(0,0,0,0);
+    const returned = new Date(actualReturn).setHours(0,0,0,0);
+    
+    if (returned < expected) return { label: 'Returned Early', color: '#2e7d32', bg: '#e8f5e9' }; // Green
+    if (returned > expected) return { label: 'Returned Late', color: '#d32f2f', bg: '#ffebee' }; // Red
+    return { label: 'Returned On Time', color: '#1565c0', bg: '#e3f2fd' }; // Blue
+  };
+
   const filteredRequests = requests.filter(r => {
     const searchLower = searchTerm.toLowerCase();
     return (
@@ -154,7 +162,6 @@ export default function AdminDashboard() {
       
       <Box sx={{ p: { xs: 2, md: 5 }, maxWidth: 1500, mx: 'auto' }}>
         
-        {/* HEADER & ADMIN ACTIONS */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4, flexWrap: 'wrap', gap: 2 }}>
           <Typography variant="h4" fontWeight="900" sx={{ color: '#1a237e' }}>
             ADMIN COMMAND CENTER
@@ -166,7 +173,6 @@ export default function AdminDashboard() {
           </Box>
         </Box>
 
-        {/* 4 KPI CARDS */}
         <Grid container spacing={3} sx={{ mb: 4 }}>
           {[
             { label: 'Pending Approval', val: stats.pending, col: '#ed6c02', icon: <NotificationsActiveIcon /> },
@@ -186,7 +192,6 @@ export default function AdminDashboard() {
           ))}
         </Grid>
 
-        {/* MAIN LAYOUT */}
         <Grid container spacing={4}>
           <Grid item xs={12} md={8}>
             <Paper elevation={0} sx={{ p: 4, borderRadius: 4, border: '1px solid #e0e0e0', height: '100%' }}>
@@ -213,7 +218,10 @@ export default function AdminDashboard() {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {displayedRequests.length > 0 ? displayedRequests.map((row) => (
+                    {displayedRequests.length > 0 ? displayedRequests.map((row) => {
+                      const returnData = getReturnStatus(row.endDate, row.actualReturnDate);
+
+                      return (
                       <TableRow key={row._id} hover>
                         <TableCell sx={{ py: 2 }}>
                           <Typography variant="body1" fontWeight="bold">{row.user?.firstName} {row.user?.lastName}</Typography>
@@ -222,20 +230,31 @@ export default function AdminDashboard() {
                         
                         <TableCell sx={{ py: 2 }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                <Avatar 
-                                    src={row.forklift?.images?.[0] || row.forklift?.image} 
-                                    variant="rounded" 
-                                    sx={{ width: 45, height: 45, border: '1px solid #eee' }}
-                                >
+                                <Avatar src={row.forklift?.images?.[0] || row.forklift?.image} variant="rounded" sx={{ width: 45, height: 45, border: '1px solid #eee' }}>
                                     <ForkliftIcon />
                                 </Avatar>
                                 <Typography variant="body2" fontWeight="bold">{row.forklift?.model || 'Unavailable'}</Typography>
                             </Box>
                         </TableCell>
 
+                        {/* TABLE DATES WITH EARLY/LATE BADGE */}
                         <TableCell sx={{ py: 2 }}>
-                          <Typography variant="body2">{row.startDate ? new Date(row.startDate).toLocaleDateString() : 'N/A'}</Typography>
+                          <Typography variant="body2" fontWeight="bold" color="text.primary">
+                            Out: {row.startDate ? new Date(row.startDate).toLocaleDateString() : 'N/A'}
+                          </Typography>
+                          
+                          <Typography variant="body2" fontWeight="bold" color={row.status === 'Active' ? 'error.main' : 'text.secondary'}>
+                            {row.status === 'Completed' ? 'In: ' : 'Due: '} 
+                            {row.status === 'Completed' && row.actualReturnDate 
+                                ? new Date(row.actualReturnDate).toLocaleDateString() 
+                                : (row.endDate ? new Date(row.endDate).toLocaleDateString() : 'N/A')}
+                          </Typography>
+                          
+                          {row.status === 'Completed' && returnData && (
+                              <Chip label={returnData.label} size="small" sx={{ mt: 0.5, bgcolor: returnData.bg, color: returnData.color, fontWeight: 'bold', fontSize: '0.65rem', height: 20 }} />
+                          )}
                         </TableCell>
+                        
                         <TableCell sx={{ py: 2 }}><Chip label={row.status} color={getStatusColor(row.status)} sx={{ fontWeight: 'bold', px: 1 }} /></TableCell>
                         <TableCell align="center" sx={{ py: 2 }}>
                           <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
@@ -252,7 +271,8 @@ export default function AdminDashboard() {
                           </Box>
                         </TableCell>
                       </TableRow>
-                    )) : (
+                    )
+                    }) : (
                       <TableRow><TableCell colSpan={5} align="center" sx={{ py: 8 }}><Typography color="text.secondary" variant="h6">No matching records found.</Typography></TableCell></TableRow>
                     )}
                   </TableBody>
@@ -267,7 +287,6 @@ export default function AdminDashboard() {
             </Paper>
           </Grid>
 
-          {/* SIDEBAR: RECENT ACTIVITY */}
           <Grid item xs={12} md={4}>
             <Paper elevation={0} sx={{ p: 4, borderRadius: 4, border: '1px solid #e0e0e0', height: '100%' }}>
               <Typography variant="h6" fontWeight="900" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#1a237e' }}>
@@ -313,7 +332,6 @@ export default function AdminDashboard() {
           {selectedReq && (
             <Grid container spacing={4}>
               
-              {/* Customer Info Card */}
               <Grid item xs={12}>
                 <Typography variant="subtitle1" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, fontWeight: 'bold' }}>
                   <PersonIcon /> CUSTOMER INFORMATION
@@ -340,7 +358,7 @@ export default function AdminDashboard() {
                 </Paper>
               </Grid>
 
-              {/* Timeframe & Equipment Specs (Side by Side) */}
+              {/* --- THE FIX: MODAL DATES WITH EARLY/LATE DISPLAY --- */}
               <Grid item xs={12} md={6}>
                 <Typography variant="subtitle1" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, fontWeight: 'bold' }}>
                   <CalendarMonthIcon /> RENTAL TIMEFRAME
@@ -352,14 +370,32 @@ export default function AdminDashboard() {
                             <Typography variant="h6" fontWeight="900">{new Date(selectedReq.startDate).toLocaleDateString()}</Typography>
                         </Box>
                         <Box textAlign="right">
-                            <Typography variant="caption" color="text.secondary" fontWeight="bold" textTransform="uppercase">End Date</Typography>
+                            <Typography variant="caption" color="text.secondary" fontWeight="bold" textTransform="uppercase">Expected End</Typography>
                             <Typography variant="h6" fontWeight="900">{new Date(selectedReq.endDate).toLocaleDateString()}</Typography>
                         </Box>
                     </Stack>
-                    <Box sx={{ mt: 3, pt: 3, borderTop: '2px dashed #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Typography variant="body1" fontWeight="bold" color="text.secondary">Total Duration:</Typography>
-                        <Typography variant="h5" color="primary.main" fontWeight="900">{calculateDays(selectedReq.startDate, selectedReq.endDate)} Day(s)</Typography>
-                    </Box>
+                    
+                    {selectedReq.status === 'Completed' && selectedReq.actualReturnDate && (
+                      <Box sx={{ mt: 2, pt: 2, borderTop: '2px dashed #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <Box>
+                              <Typography variant="caption" color="text.secondary" fontWeight="bold" textTransform="uppercase">Actual Return</Typography>
+                              <Typography variant="h6" fontWeight="900" color="#2e7d32">{new Date(selectedReq.actualReturnDate).toLocaleDateString()}</Typography>
+                          </Box>
+                          <Box textAlign="right">
+                             {(() => {
+                               const rData = getReturnStatus(selectedReq.endDate, selectedReq.actualReturnDate);
+                               return rData ? <Chip label={rData.label} sx={{ bgcolor: rData.bg, color: rData.color, fontWeight: 'bold' }} size="small" /> : null;
+                             })()}
+                          </Box>
+                      </Box>
+                    )}
+
+                    {!selectedReq.actualReturnDate && (
+                      <Box sx={{ mt: 3, pt: 3, borderTop: '2px dashed #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <Typography variant="body1" fontWeight="bold" color="text.secondary">Total Duration:</Typography>
+                          <Typography variant="h5" color="primary.main" fontWeight="900">{calculateDays(selectedReq.startDate, selectedReq.endDate)} Day(s)</Typography>
+                      </Box>
+                    )}
                 </Paper>
               </Grid>
 
@@ -378,18 +414,25 @@ export default function AdminDashboard() {
                    </Box>
                    <Grid container spacing={2}>
                       <Grid item xs={6}>
-                          <Typography variant="caption" color="text.secondary" fontWeight="bold" textTransform="uppercase">Capacity</Typography>
-                          <Typography variant="body2" fontWeight="bold">{selectedReq.forklift?.capacity || 'N/A'}</Typography>
+                          <Typography variant="caption" color="text.secondary" fontWeight="bold" textTransform="uppercase">Lift Capacity</Typography>
+                          <Typography variant="body2" fontWeight="bold">{selectedReq.forklift?.capacity ? `${selectedReq.forklift.capacity} lbs` : 'N/A'}</Typography>
                       </Grid>
                       <Grid item xs={6}>
-                          <Typography variant="caption" color="text.secondary" fontWeight="bold" textTransform="uppercase">Power Type</Typography>
-                          <Typography variant="body2" fontWeight="bold">{selectedReq.forklift?.power || 'N/A'}</Typography>
+                          <Typography variant="caption" color="text.secondary" fontWeight="bold" textTransform="uppercase">Horsepower</Typography>
+                          <Typography variant="body2" fontWeight="bold">{selectedReq.forklift?.power ? `${selectedReq.forklift.power} HP` : 'N/A'}</Typography>
+                      </Grid>
+                      <Grid item xs={6}>
+                          <Typography variant="caption" color="text.secondary" fontWeight="bold" textTransform="uppercase">Torque Rating</Typography>
+                          <Typography variant="body2" fontWeight="bold">{selectedReq.forklift?.torque || 'N/A'}</Typography>
+                      </Grid>
+                      <Grid item xs={6}>
+                          <Typography variant="caption" color="text.secondary" fontWeight="bold" textTransform="uppercase">Fuel Type</Typography>
+                          <Typography variant="body2" fontWeight="bold">{selectedReq.forklift?.fuel || 'N/A'}</Typography>
                       </Grid>
                    </Grid>
                 </Paper>
               </Grid>
 
-              {/* Admin Actions Area inside Modal */}
               {selectedReq.status === 'Pending' && (
                   <Grid item xs={12}>
                       <Paper elevation={0} sx={{ p: 3, mt: 2, bgcolor: '#e3f2fd', borderRadius: 4, border: '1px solid #bbdefb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -419,7 +462,6 @@ export default function AdminDashboard() {
         </DialogActions>
       </Dialog>
 
-      {/* --- MODAL 2: CONFIRM RETURN --- */}
       <Dialog open={confirmCompleteModal} onClose={() => setConfirmCompleteModal(false)} maxWidth="xs" fullWidth>
         <DialogTitle sx={{ fontWeight: 'bold', bgcolor: '#2e7d32', color: 'white', textAlign: 'center' }}>
           Confirm Equipment Return
@@ -437,7 +479,6 @@ export default function AdminDashboard() {
         </DialogActions>
       </Dialog>
 
-      {/* --- MODAL 3: REJECT REQUEST --- */}
       <Dialog open={rejectModal} onClose={() => setRejectModal(false)} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ fontWeight: 'bold', bgcolor: '#d32f2f', color: 'white' }}>
           Decline Booking Request

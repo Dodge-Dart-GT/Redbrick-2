@@ -150,9 +150,8 @@ export default function ForkliftManagement() {
 
     try {
       let finalImages = editFormData.images || [];
-      let finalImageUrl = editFormData.image || ''; // Capture the manually edited URL
+      let finalImageUrl = editFormData.image || ''; 
 
-      // If new local files were selected, upload them and overwrite the old array/url
       if (editImageFiles.length > 0) {
         let uploadedImageUrls = [];
         for (const file of editImageFiles) {
@@ -164,10 +163,9 @@ export default function ForkliftManagement() {
           uploadedImageUrls.push(uploadRes.data.image);
         }
         finalImages = uploadedImageUrls;
-        finalImageUrl = uploadedImageUrls[0] || ''; // Sync the main image to the first uploaded one
+        finalImageUrl = uploadedImageUrls[0] || ''; 
       }
 
-      // Merge the updated text fields, URL, and image array
       const updatedData = { 
         ...editFormData, 
         images: finalImages,
@@ -226,7 +224,7 @@ export default function ForkliftManagement() {
         <Grid container spacing={4}>
 
           {/* --- LEFT COLUMN: ADD NEW FORM --- */}
-          <Grid item xs={12} md={4}>
+          <Grid size={{ xs: 12, md: 4 }}>
             <Paper elevation={0} sx={{ p: 4, borderRadius: 3, border: '1px solid #e0e0e0' }}>
               <Typography variant="h6" sx={{ fontWeight: '800', mb: 3, color: '#1a237e', borderBottom: '2px solid #eee', pb: 1 }}>
                 ADD NEW VEHICLE
@@ -252,7 +250,7 @@ export default function ForkliftManagement() {
                     </FormControl>
                   </Stack>
 
-                  <Grid item xs={12}>
+                  <Box sx={{ width: '100%' }}>
                     <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1, mt: 1 }}>
                        <FormControlLabel control={<Switch checked={useImageUrl} onChange={() => setUseImageUrl(!useImageUrl)} size="small" />} label={<Typography variant="caption" fontWeight="bold">Use Image URL</Typography>} />
                     </Box>
@@ -279,7 +277,7 @@ export default function ForkliftManagement() {
                         )}
                       </Box>
                     )}
-                  </Grid>
+                  </Box>
 
                   <Button type="submit" variant="contained" fullWidth disabled={uploading} sx={{ bgcolor: '#1a237e', fontWeight: 'bold', py: 1.5, mt: 1, '&:hover': { bgcolor: '#0d1440' } }}>
                     {uploading ? 'PROCESSING UPLOADS...' : 'ADD TO INVENTORY'}
@@ -290,7 +288,7 @@ export default function ForkliftManagement() {
           </Grid>
 
           {/* --- RIGHT COLUMN: INVENTORY LIST --- */}
-          <Grid item xs={12} md={8}>
+          <Grid size={{ xs: 12, md: 8 }}>
             <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: '1px solid #e0e0e0' }}>
               <Typography variant="h6" sx={{ fontWeight: '800', mb: 2 }}>CURRENT INVENTORY ({forklifts.length})</Typography>
 
@@ -301,13 +299,14 @@ export default function ForkliftManagement() {
                       <TableCell sx={{ fontWeight: 'bold', bgcolor: '#f1f3f5' }}>IMAGE</TableCell>
                       <TableCell sx={{ fontWeight: 'bold', bgcolor: '#f1f3f5' }}>MODEL INFO</TableCell>
                       <TableCell sx={{ fontWeight: 'bold', bgcolor: '#f1f3f5' }}>SPECS</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold', bgcolor: '#f1f3f5' }}>STATUS</TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 'bold', bgcolor: '#f1f3f5' }}>STATUS</TableCell>
                       <TableCell align="center" sx={{ fontWeight: 'bold', bgcolor: '#f1f3f5' }}>ACTIONS</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {forklifts.map((forklift) => {
                       const displayImage = forklift.images && forklift.images.length > 0 ? forklift.images[0] : (forklift.image || 'https://placehold.co/600x400?text=No+Vehicle+Image');
+                      const isRented = forklift.status === 'Rented';
 
                       return (
                       <TableRow key={forklift._id} hover>
@@ -324,18 +323,41 @@ export default function ForkliftManagement() {
                           <Typography variant="caption" color="text.secondary">{forklift.model}</Typography>
                         </TableCell>
                         <TableCell>
-                          <Typography variant="caption" display="block">{forklift.capacity || 'N/A'}</Typography>
+                          <Typography variant="caption" display="block">{forklift.capacity ? `${forklift.capacity} lbs` : 'N/A'}</Typography>
                           <Typography variant="caption" color="text.secondary">{forklift.fuel || 'N/A'}</Typography>
                         </TableCell>
-                        <TableCell>
-                          <FormControl size="small" sx={{ minWidth: 120 }}>
-                            <Select value={forklift.status} onChange={(e) => handleStatusChange(forklift._id, e.target.value)} sx={{ fontSize: '0.8rem', fontWeight: 'bold', color: forklift.status === 'Available' ? '#2e7d32' : forklift.status === 'Maintenance' ? '#d32f2f' : '#ed6c02', '.MuiOutlinedInput-notchedOutline': { borderColor: 'transparent' }, '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#ccc' }, bgcolor: '#f8f9fa' }}>
-                              <MenuItem value="Available" sx={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#2e7d32' }}>Available</MenuItem>
-                              <MenuItem value="Maintenance" sx={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#d32f2f' }}>Maintenance</MenuItem>
-                              <MenuItem value="Rented" sx={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#ed6c02' }}>Rented</MenuItem>
-                            </Select>
-                          </FormControl>
+                        
+                        {/* --- THE FIX: LOCKED STATUS DROPDOWN & RETURN DATE --- */}
+                        <TableCell align="center">
+                          <Tooltip title={isRented ? "Status locked by active rental agreement." : ""}>
+                            <FormControl size="small" sx={{ minWidth: 140 }}>
+                              <Select 
+                                value={forklift.status} 
+                                disabled={isRented} 
+                                onChange={(e) => handleStatusChange(forklift._id, e.target.value)} 
+                                sx={{ 
+                                  fontSize: '0.8rem', fontWeight: 'bold', 
+                                  color: forklift.status === 'Available' ? '#2e7d32' : forklift.status === 'Maintenance' ? '#d32f2f' : '#ed6c02', 
+                                  '.MuiOutlinedInput-notchedOutline': { borderColor: isRented ? '#e0e0e0' : 'transparent' }, 
+                                  '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: isRented ? '#e0e0e0' : '#ccc' }, 
+                                  bgcolor: isRented ? '#f5f5f5' : '#f8f9fa' 
+                                }}
+                              >
+                                <MenuItem value="Available" sx={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#2e7d32' }}>Available</MenuItem>
+                                <MenuItem value="Maintenance" sx={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#d32f2f' }}>Maintenance</MenuItem>
+                                <MenuItem value="Rented" sx={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#ed6c02' }}>Rented</MenuItem>
+                              </Select>
+                            </FormControl>
+                          </Tooltip>
+
+                          {/* Display Expected Return Date below the select if it's rented */}
+                          {isRented && forklift.nextAvailableDate && (
+                            <Typography variant="caption" display="block" color="error.main" fontWeight="bold" sx={{ mt: 0.5 }}>
+                              Due: {new Date(forklift.nextAvailableDate).toLocaleDateString()}
+                            </Typography>
+                          )}
                         </TableCell>
+
                         <TableCell align="center">
                           <Box sx={{ display: 'flex', justifyContent: 'center' }}>
                             <Tooltip title="Edit Vehicle">
@@ -390,7 +412,6 @@ export default function ForkliftManagement() {
 
                 <Divider sx={{ my: 2 }}>IMAGE SETTINGS</Divider>
 
-                {/* THE FIX: ADDED IMAGE URL FIELD HERE */}
                 <TextField 
                   fullWidth 
                   size="small"
@@ -402,7 +423,6 @@ export default function ForkliftManagement() {
                   sx={{ mb: 2 }}
                 />
 
-                {/* Edit Images Section */}
                 <Box sx={{ border: '2px dashed #ccc', borderRadius: 2, p: 2, textAlign: 'center', bgcolor: '#fafafa' }}>
                   <Typography variant="body2" color="text.secondary" gutterBottom>
                     Or select local files to upload. This will overwrite the URL above.

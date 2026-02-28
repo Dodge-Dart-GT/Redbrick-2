@@ -6,7 +6,7 @@ const reviewSchema = mongoose.Schema({
   name: { type: String, required: true },
   rating: { type: Number, required: true },
   comment: { type: String, required: true },
-  images: [String] // Array to hold uploaded image URLs from the customer
+  images: [String] 
 }, { timestamps: true });
 
 // 2. Update the main Forklift schema
@@ -21,10 +21,12 @@ const forkliftSchema = mongoose.Schema({
   image: { type: String }, 
   images: [String], 
   
-  // --- NEW REVIEW FIELDS ---
-  reviews: [reviewSchema], // Embeds the reviews directly into the vehicle
-  rating: { type: Number, required: true, default: 0 }, // Average star rating
-  numReviews: { type: Number, required: true, default: 0 } // Total number of reviews
+  // --- THE FIX: ADDED PERMANENT RETURN DATE FIELD ---
+  nextAvailableDate: { type: Date }, 
+
+  reviews: [reviewSchema], 
+  rating: { type: Number, required: true, default: 0 }, 
+  numReviews: { type: Number, required: true, default: 0 } 
 }, { timestamps: true });
 
 module.exports = mongoose.model('Forklift', forkliftSchema);

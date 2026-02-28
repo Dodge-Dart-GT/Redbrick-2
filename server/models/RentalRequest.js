@@ -19,7 +19,11 @@ const rentalRequestSchema = new mongoose.Schema({
     type: Date,
     required: true
   },
-  totalCost: { // <-- NEW FIELD FOR INCOME TRENDS
+  // --- THE FIX: ADD THE ACTUAL RETURN DATE FIELD ---
+  actualReturnDate: {
+    type: Date
+  },
+  totalCost: { 
     type: Number,
     default: 0
   },

@@ -5,79 +5,97 @@ const Forklift = require('../models/Forklift');
 const User = require('../models/User');
 const { protect, adminOrOwner } = require('../middleware/authMiddleware');
 
-// @desc    Get all analytics data for the dashboard
-// @route   GET /api/analytics
-// @access  Private (Admin/Owner only)
 router.get('/', protect, adminOrOwner, async (req, res) => {
   try {
-    // 1. KPI CARDS (Total Revenue, Total Rentals, etc.)
-    const totalRentals = await RentalRequest.countDocuments();
-    const activeRentals = await RentalRequest.countDocuments({ status: 'Active' });
+    const { timeframe } = req.query; // 'week', 'month', 'year', or 'all'
+    let dateMatch = {};
     
-    // Calculate total revenue from Active and Completed rentals
-    const revenueData = await RentalRequest.aggregate([
-      { $match: { status: { $in: ['Active', 'Completed'] } } },
-      { $group: { _id: null, totalRevenue: { $sum: "$totalCost" } } }
-    ]);
-    const totalRevenue = revenueData.length > 0 ? revenueData[0].totalRevenue : 0;
+    // 1. GLOBAL TIMEFRAME FILTER (Applies to Charts & KPIs)
+    if (timeframe === 'week') {
+      const lastWeek = new Date(); lastWeek.setDate(lastWeek.getDate() - 7);
+      dateMatch = { createdAt: { $gte: lastWeek } };
+    } else if (timeframe === 'month') {
+      const lastMonth = new Date(); lastMonth.setMonth(lastMonth.getMonth() - 1);
+      dateMatch = { createdAt: { $gte: lastMonth } };
+    } else if (timeframe === 'year') {
+      const lastYear = new Date(); lastYear.setFullYear(lastYear.getFullYear() - 1);
+      dateMatch = { createdAt: { $gte: lastYear } };
+    } 
 
-    // 2. INCOME & RENTAL TRENDS (Grouped by Month)
+    // 2. KPI CARDS (Swapped Revenue for Unique Customers)
+    const totalRentals = await RentalRequest.countDocuments(dateMatch);
+    const activeRentals = await RentalRequest.countDocuments({ ...dateMatch, status: 'Active' });
+    const uniqueUsersArray = await RentalRequest.distinct('user', dateMatch);
+    const totalUniqueCustomers = uniqueUsersArray.length;
+
+    // 3. RENTAL TRENDS (Line Chart - Now only tracks Frequency)
+    let groupStage = {};
+    if (timeframe === 'week' || timeframe === 'month') {
+       groupStage = {
+          _id: { day: { $dayOfMonth: "$createdAt" }, month: { $month: "$createdAt" }, year: { $year: "$createdAt" } },
+          rentals: { $sum: 1 }
+       };
+    } else {
+       groupStage = {
+          _id: { month: { $month: "$createdAt" }, year: { $year: "$createdAt" } },
+          rentals: { $sum: 1 }
+       };
+    }
+
     const trends = await RentalRequest.aggregate([
-      { 
-        $project: {
-          month: { $month: "$createdAt" },
-          year: { $year: "$createdAt" },
-          totalCost: 1
-        }
-      },
-      {
-        $group: {
-          _id: { month: "$month", year: "$year" },
-          rentals: { $sum: 1 },
-          income: { $sum: "$totalCost" }
-        }
-      },
-      { $sort: { "_id.year": 1, "_id.month": 1 } }
+      { $match: dateMatch },
+      { $group: groupStage },
+      { $sort: { "_id.year": 1, "_id.month": 1, "_id.day": 1 } }
     ]);
 
-    // Format trends for Recharts (e.g., "Jan 2026")
     const formattedTrends = trends.map(t => {
-      const date = new Date(t._id.year, t._id.month - 1, 1);
-      return {
-        name: date.toLocaleString('default', { month: 'short', year: 'numeric' }),
-        rentals: t.rentals,
-        income: t.income
-      };
+      if (t._id.day) {
+        const date = new Date(t._id.year, t._id.month - 1, t._id.day);
+        return { name: date.toLocaleDateString('default', { month: 'short', day: 'numeric' }), rentals: t.rentals };
+      } else {
+        const date = new Date(t._id.year, t._id.month - 1, 1);
+        return { name: date.toLocaleString('default', { month: 'short', year: 'numeric' }), rentals: t.rentals };
+      }
     });
 
-    // 3. FORKLIFT UTILIZATION (Most Rented Equipment)
+    // 4. FORKLIFT UTILIZATION (Bar Chart)
     const utilization = await RentalRequest.aggregate([
-      { $match: { status: { $ne: 'Rejected' } } },
+      { $match: { ...dateMatch, status: { $ne: 'Rejected' } } },
       { $group: { _id: "$forklift", count: { $sum: 1 } } },
       { $sort: { count: -1 } },
-      { $limit: 5 } // Top 5
+      { $limit: 5 } 
     ]);
 
-    // Populate the forklift details for the chart
     const populatedUtilization = await Forklift.populate(utilization, { path: '_id', select: 'make model' });
     const formattedUtilization = populatedUtilization.map(u => ({
       name: u._id ? `${u._id.make} ${u._id.model}` : 'Deleted Vehicle',
       rentals: u.count
     }));
 
-    // 4. CUSTOMER ACTIVITY (Top Renters)
+    // 5. CUSTOMER FREQUENCY BREAKDOWN (Calculates exact dates for the table)
+    const now = new Date();
+    const last7 = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const last30 = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const last365 = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+
     const topCustomers = await RentalRequest.aggregate([
-      { $match: { status: { $ne: 'Rejected' } } },
-      { $group: { _id: "$user", rentalsCount: { $sum: 1 }, totalSpent: { $sum: "$totalCost" } } },
-      { $sort: { rentalsCount: -1 } },
-      { $limit: 5 }
+      { $match: { status: { $ne: 'Rejected' } } }, // Notice we skip dateMatch so the table shows all-time history
+      { $group: { 
+          _id: "$user", 
+          totalRentals: { $sum: 1 },
+          rentalsWeek: { $sum: { $cond: [{ $gte: ["$createdAt", last7] }, 1, 0] } },
+          rentalsMonth: { $sum: { $cond: [{ $gte: ["$createdAt", last30] }, 1, 0] } },
+          rentalsYear: { $sum: { $cond: [{ $gte: ["$createdAt", last365] }, 1, 0] } }
+        } 
+      },
+      { $sort: { totalRentals: -1 } },
+      { $limit: 10 } // Show top 10 customers
     ]);
 
     const populatedCustomers = await User.populate(topCustomers, { path: '_id', select: 'firstName lastName email' });
 
-    // Send everything back in one clean package
     res.json({
-      kpis: { totalRentals, activeRentals, totalRevenue },
+      kpis: { totalRentals, activeRentals, totalUniqueCustomers },
       trends: formattedTrends,
       utilization: formattedUtilization,
       topCustomers: populatedCustomers
