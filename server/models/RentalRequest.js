@@ -19,12 +19,16 @@ const rentalRequestSchema = new mongoose.Schema({
     type: Date,
     required: true
   },
+  totalCost: { // <-- NEW FIELD FOR INCOME TRENDS
+    type: Number,
+    default: 0
+  },
   status: {
     type: String,
     enum: ['Pending', 'Active', 'Completed', 'Rejected'],
     default: 'Pending'
   },
-  rejectionReason: { // <-- NEW FIELD WE ADDED
+  rejectionReason: { 
     type: String,
     default: ''
   }

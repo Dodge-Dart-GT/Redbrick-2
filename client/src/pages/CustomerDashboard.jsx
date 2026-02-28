@@ -23,7 +23,7 @@ import DoneAllIcon from '@mui/icons-material/DoneAll';
 import BuildCircleIcon from '@mui/icons-material/BuildCircle';
 import RateReviewIcon from '@mui/icons-material/RateReview'; 
 import StarIcon from '@mui/icons-material/Star';
-import PhotoCameraIcon from '@mui/icons-material/PhotoCamera'; // <-- NEW CAMERA ICON
+import PhotoCameraIcon from '@mui/icons-material/PhotoCamera'; 
 
 export default function CustomerDashboard() {
   const navigate = useNavigate();
@@ -40,7 +40,7 @@ export default function CustomerDashboard() {
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
   const [reviewImage, setReviewImage] = useState("");
-  const [uploading, setUploading] = useState(false); // <-- NEW UPLOAD STATE
+  const [uploading, setUploading] = useState(false); 
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
   // Pagination & Search State
@@ -109,7 +109,6 @@ export default function CustomerDashboard() {
   const pageCount = Math.max(1, Math.ceil(filteredRentals.length / ITEMS_PER_PAGE));
   const displayedRentals = filteredRentals.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
 
-  // --- REVIEW HANDLERS ---
   const handleOpenReview = (rental) => {
     setReviewTarget(rental);
     setRating(0);
@@ -119,29 +118,33 @@ export default function CustomerDashboard() {
     setReviewModalOpen(true);
   };
 
-  // --- NEW: DIRECT IMAGE UPLOAD LOGIC ---
   const uploadFileHandler = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
     const formData = new FormData();
-    formData.append('image', file); // Assumes your backend expects a file named 'image'
+    formData.append('image', file); 
     setUploading(true);
 
+    const userInfo = JSON.parse(localStorage.getItem('userInfo'));
+
     try {
-      const config = { headers: { 'Content-Type': 'multipart/form-data' } };
+      const config = { 
+        headers: { 
+          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${userInfo?.token}` 
+        } 
+      };
       
-      // Make sure this matches your existing Cloudinary backend upload route!
       const { data } = await axios.post('http://localhost:5000/api/upload', formData, config);
       
-      // Usually Cloudinary returns data.url or data.secure_url
       setReviewImage(data.url || data.secure_url || data); 
       setUploading(false);
       setSnackbar({ open: true, message: 'Image uploaded successfully!', severity: 'success' });
     } catch (error) {
-      console.error(error);
+      console.error("Upload Error:", error);
       setUploading(false);
-      setSnackbar({ open: true, message: 'Image upload failed. Please check file size.', severity: 'error' });
+      setSnackbar({ open: true, message: 'Image upload failed. Please try again.', severity: 'error' });
     }
   };
 
@@ -178,7 +181,7 @@ export default function CustomerDashboard() {
         <Grid container spacing={4}>
           
           {/* --- KPI STATS --- */}
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <Grid container spacing={3}>
               {[
                 { label: 'Pending Requests', val: stats.requested, col: '#1976d2', icon: <ForkliftIcon /> },
@@ -186,7 +189,7 @@ export default function CustomerDashboard() {
                 { label: 'Completed Jobs', val: stats.completed, col: '#455a64', icon: <DoneAllIcon /> },
                 { label: 'Rejected / Cancelled', val: stats.due, col: '#d32f2f', icon: <WarningIcon /> },
               ].map((kpi, i) => (
-                <Grid item key={i} xs={12} sm={6} md={3}>
+                <Grid key={i} size={{ xs: 12, sm: 6, md: 3 }}>
                   <Paper elevation={0} sx={{ p: 3, borderRadius: 4, border: '1px solid #e0e0e0', display: 'flex', alignItems: 'center', gap: 3, transition: 'transform 0.2s', '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 8px 24px rgba(0,0,0,0.05)' } }}>
                     <Avatar sx={{ bgcolor: `${kpi.col}15`, color: kpi.col, width: 60, height: 60 }}>{kpi.icon}</Avatar>
                     <Box>
@@ -200,7 +203,7 @@ export default function CustomerDashboard() {
           </Grid>
 
           {/* --- MAIN TABLE SECTION --- */}
-          <Grid item xs={12} md={8}>
+          <Grid size={{ xs: 12, md: 8 }}>
             <Paper elevation={0} sx={{ p: 4, borderRadius: 4, border: '1px solid #e0e0e0', height: '100%' }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4, flexWrap: 'wrap', gap: 2 }}>
                 <Typography variant="h5" fontWeight="900" color="#1a237e">RENTAL AGREEMENTS</Typography>
@@ -291,7 +294,7 @@ export default function CustomerDashboard() {
           </Grid>
 
           {/* --- SIDEBAR --- */}
-          <Grid item xs={12} md={4}>
+          <Grid size={{ xs: 12, md: 4 }}>
             
             <Paper elevation={0} sx={{ p: 4, borderRadius: 4, border: '1px solid #e0e0e0', mb: 4 }}>
               <Typography variant="h6" fontWeight="900" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#1a237e' }}>
@@ -364,7 +367,6 @@ export default function CustomerDashboard() {
                 sx={{ bgcolor: 'white' }}
              />
 
-             {/* NATIVE UPLOAD BUTTON */}
              <Box sx={{ width: '100%', textAlign: 'left', mt: 1 }}>
                <Typography variant="subtitle2" fontWeight="bold" color="text.secondary" gutterBottom>
                  Attach a Photo (Optional)
@@ -412,7 +414,7 @@ export default function CustomerDashboard() {
           {selectedReq && (
             <Grid container spacing={4}>
               
-              <Grid item xs={12} md={8} sx={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+              <Grid size={{ xs: 12, md: 8 }} sx={{ display: 'flex', gap: 4, alignItems: 'center' }}>
                 <Avatar 
                     src={selectedReq.forklift?.images?.[0] || selectedReq.forklift?.image} 
                     variant="rounded" 
@@ -433,16 +435,16 @@ export default function CustomerDashboard() {
                 </Box>
               </Grid>
 
-              <Grid item xs={12} md={4} sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: { xs: 'flex-start', md: 'flex-end' } }}>
+              <Grid size={{ xs: 12, md: 4 }} sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: { xs: 'flex-start', md: 'flex-end' } }}>
                 <Typography variant="subtitle2" color="text.secondary" fontWeight="bold" gutterBottom>
                   CURRENT STATUS
                 </Typography> 
                 <Chip label={selectedReq.status} color={getStatusColor(selectedReq.status)} sx={{ fontWeight: 'bold', px: 3, py: 3, fontSize: '1.2rem', borderRadius: 2 }} />
               </Grid>
 
-              <Grid item xs={12}><Divider /></Grid>
+              <Grid size={{ xs: 12 }}><Divider /></Grid>
 
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant="subtitle1" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, fontWeight: 'bold' }}>
                   <CalendarMonthIcon /> RENTAL TIMEFRAME
                 </Typography>
@@ -464,26 +466,26 @@ export default function CustomerDashboard() {
                 </Paper>
               </Grid>
 
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant="subtitle1" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, fontWeight: 'bold' }}>
                   <BuildCircleIcon /> VEHICLE SPECIFICATIONS
                 </Typography>
                 <Paper elevation={0} sx={{ p: 4, border: '1px solid #e0e0e0', borderRadius: 4, bgcolor: 'white', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                    <Grid container spacing={3}>
-                      <Grid item xs={6}>
+                      <Grid size={{ xs: 6 }}>
                           <Typography variant="caption" color="text.secondary" fontWeight="bold" textTransform="uppercase">Lift Capacity</Typography>
-                          <Typography variant="body1" fontWeight="bold">{selectedReq.forklift?.capacity || 'N/A'}</Typography>
+                          <Typography variant="body1" fontWeight="bold">{selectedReq.forklift?.capacity ? `${selectedReq.forklift.capacity} lbs` : 'N/A'}</Typography>
                       </Grid>
-                      <Grid item xs={6}>
-                          <Typography variant="caption" color="text.secondary" fontWeight="bold" textTransform="uppercase">Power Type</Typography>
-                          <Typography variant="body1" fontWeight="bold">{selectedReq.forklift?.power || 'N/A'}</Typography>
+                      <Grid size={{ xs: 6 }}>
+                          <Typography variant="caption" color="text.secondary" fontWeight="bold" textTransform="uppercase">Horsepower</Typography>
+                          <Typography variant="body1" fontWeight="bold">{selectedReq.forklift?.power ? `${selectedReq.forklift.power} HP` : 'N/A'}</Typography>
                       </Grid>
-                      <Grid item xs={6}>
+                      <Grid size={{ xs: 6 }}>
                           <Typography variant="caption" color="text.secondary" fontWeight="bold" textTransform="uppercase">Torque Rating</Typography>
                           <Typography variant="body1" fontWeight="bold">{selectedReq.forklift?.torque || 'N/A'}</Typography>
                       </Grid>
-                      <Grid item xs={6}>
-                          <Typography variant="caption" color="text.secondary" fontWeight="bold" textTransform="uppercase">Fuel Option</Typography>
+                      <Grid size={{ xs: 6 }}>
+                          <Typography variant="caption" color="text.secondary" fontWeight="bold" textTransform="uppercase">Fuel Type</Typography>
                           <Typography variant="body1" fontWeight="bold">{selectedReq.forklift?.fuel || 'N/A'}</Typography>
                       </Grid>
                    </Grid>
@@ -491,7 +493,7 @@ export default function CustomerDashboard() {
               </Grid>
 
               {selectedReq.status === 'Rejected' && selectedReq.rejectionReason && (
-                <Grid item xs={12}>
+                <Grid size={{ xs: 12 }}>
                   <Typography variant="subtitle1" color="error.main" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, mt: 2, fontWeight: 'bold' }}>
                     <CancelIcon /> REJECTION DETAILS
                   </Typography>

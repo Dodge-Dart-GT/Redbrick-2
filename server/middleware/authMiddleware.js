@@ -12,7 +12,7 @@ const protect = async (req, res, next) => {
       req.user = await User.findById(decoded.id).select('-password');
       next();
     } catch (error) {
-      console.error(error);
+      console.error("Token verification failed:", error.message);
       res.status(401).json({ message: 'Not authorized, token failed' });
     }
   }
@@ -24,8 +24,10 @@ const protect = async (req, res, next) => {
 
 // 2. ADMIN/OWNER ONLY: Only allows users with privileged roles
 const adminOrOwner = (req, res, next) => {
-  // THE FIX: Now includes 'staff' as a valid high-level role
-  if (req.user && (req.user.role === 'admin' || req.user.role === 'staff' || req.user.role === 'owner')) {
+  // THE FIX: Safely grab the role and force it to lowercase so 'Admin', 'ADMIN', and 'admin' all pass!
+  const userRole = req.user && req.user.role ? req.user.role.toLowerCase().trim() : '';
+
+  if (req.user && (userRole === 'admin' || userRole === 'staff' || userRole === 'owner')) {
     next();
   } else {
     res.status(403).json({ message: 'Not authorized as an admin, staff, or owner' });

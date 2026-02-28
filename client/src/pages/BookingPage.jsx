@@ -168,19 +168,19 @@ export default function BookingPage() {
                   <List disablePadding>
                       <ListItem disableGutters sx={{ py: 1.5 }}>
                           <ListItemIcon><FitnessCenterIcon color="action" fontSize="large" /></ListItemIcon>
-                          <ListItemText primary="Lift Capacity" secondary={model.capacity || 'Standard / Unspecified'} primaryTypographyProps={{ fontWeight: 'bold' }} secondaryTypographyProps={{ fontSize: '1rem' }} />
+                          <ListItemText primary="Lift Capacity" secondary={model.capacity ? `${model.capacity} lbs` : 'Standard / Unspecified'} primaryTypographyProps={{ fontWeight: 'bold' }} secondaryTypographyProps={{ fontSize: '1rem' }} />
                       </ListItem>
                       <ListItem disableGutters sx={{ py: 1.5 }}>
                           <ListItemIcon><EvStationIcon color="action" fontSize="large" /></ListItemIcon>
-                          <ListItemText primary="Power Type" secondary={model.power || 'Electric / Gas'} primaryTypographyProps={{ fontWeight: 'bold' }} secondaryTypographyProps={{ fontSize: '1rem' }} />
+                          <ListItemText primary="Horsepower" secondary={model.power ? `${model.power} HP` : 'N/A'} primaryTypographyProps={{ fontWeight: 'bold' }} secondaryTypographyProps={{ fontSize: '1rem' }} />
                       </ListItem>
                       <ListItem disableGutters sx={{ py: 1.5 }}>
                           <ListItemIcon><BoltIcon color="action" fontSize="large" /></ListItemIcon>
-                          <ListItemText primary="Power Rating (Torque)" secondary={model.torque || 'N/A'} primaryTypographyProps={{ fontWeight: 'bold' }} secondaryTypographyProps={{ fontSize: '1rem' }} />
+                          <ListItemText primary="Torque Rating" secondary={model.torque || 'N/A'} primaryTypographyProps={{ fontWeight: 'bold' }} secondaryTypographyProps={{ fontSize: '1rem' }} />
                       </ListItem>
                       <ListItem disableGutters sx={{ py: 1.5 }}>
                           <ListItemIcon><LocalGasStationIcon color="action" fontSize="large" /></ListItemIcon>
-                          <ListItemText primary="Fuel Option" secondary={model.fuel || 'N/A'} primaryTypographyProps={{ fontWeight: 'bold' }} secondaryTypographyProps={{ fontSize: '1rem' }} />
+                          <ListItemText primary="Fuel Type" secondary={model.fuel || 'N/A'} primaryTypographyProps={{ fontWeight: 'bold' }} secondaryTypographyProps={{ fontSize: '1rem' }} />
                       </ListItem>
                   </List>
               </Paper>
@@ -198,7 +198,7 @@ export default function BookingPage() {
                 {model.make} {model.model}
               </Typography>
 
-              {/* THE FIX: Dynamic Alert depending on Rented Status */}
+              {/* Dynamic Alert depending on Rented Status */}
               {model.status === 'Rented' ? (
                  <Alert severity="warning" sx={{ mb: 4, borderRadius: 2 }}>
                     This vehicle is currently rented. You may pre-book it starting from <strong>{new Date(model.nextAvailableDate).toLocaleDateString()}</strong>.
@@ -215,7 +215,6 @@ export default function BookingPage() {
                 <LocalizationProvider dateAdapter={AdapterDayjs}>
                   <Stack spacing={3}>
                     
-                    {/* THE FIX: Apply the dynamic minDate here */}
                     <DatePicker
                       label="Rental Start Date"
                       value={startDate}

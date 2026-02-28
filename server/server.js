@@ -13,6 +13,7 @@ const uploadRoutes = require('./routes/uploadRoutes');
 const forkliftRoutes = require('./routes/forkliftRoutes'); 
 const rentalRoutes = require('./routes/rentalRoutes');    
 const userRoutes = require('./routes/userRoutes');
+const analyticsRoutes = require('./routes/analyticsRoutes'); // <-- NEW ROUTE IMPORTED
 
 // 2. Connect to Database
 connectDB();
@@ -29,6 +30,7 @@ app.use('/api/upload', uploadRoutes);     // Image Uploads (Cloudinary)
 app.use('/api/forklifts', forkliftRoutes);// Manage Forklift Inventory
 app.use('/api/rentals', rentalRoutes);    // Manage Rental Requests
 app.use('/api/users', userRoutes);
+app.use('/api/analytics', analyticsRoutes); // <-- NEW ROUTE REGISTERED
 
 // Default Route (To check if server is working)
 app.get('/', (req, res) => {

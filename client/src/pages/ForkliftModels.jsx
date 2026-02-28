@@ -6,7 +6,7 @@ import {
   CardContent, Chip, InputAdornment, List, ListItem, 
   ListItemIcon, ListItemText, Dialog, DialogTitle, DialogContent, 
   DialogActions, IconButton, Stack, MenuItem, Select, FormControl, InputLabel,
-  Rating, Avatar, Divider, Pagination // <-- NEW IMPORT: Pagination
+  Rating, Avatar, Divider, Pagination
 } from '@mui/material';
 import Navbar from '../components/Navbar';
 
@@ -22,6 +22,7 @@ import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import InfoIcon from '@mui/icons-material/Info';
 import StarIcon from '@mui/icons-material/Star';
+import LocalGasStationIcon from '@mui/icons-material/LocalGasStation'; // <-- NEW IMPORT
 
 export default function ForkliftModels() {
   const navigate = useNavigate();
@@ -36,7 +37,7 @@ export default function ForkliftModels() {
   const [openModal, setOpenModal] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0); 
   
-  // --- NEW: Review Pagination State ---
+  // Review Pagination State
   const [reviewPage, setReviewPage] = useState(1);
   const REVIEWS_PER_PAGE = 5;
 
@@ -66,7 +67,7 @@ export default function ForkliftModels() {
   const handleOpenModal = (model) => {
     setSelectedModel(model);
     setActiveImageIndex(0); 
-    setReviewPage(1); // Reset reviews to page 1
+    setReviewPage(1); 
     setOpenModal(true);
   };
 
@@ -80,7 +81,7 @@ export default function ForkliftModels() {
     const nextIndex = (currentIndex + 1) % filteredModels.length; 
     setSelectedModel(filteredModels[nextIndex]);
     setActiveImageIndex(0); 
-    setReviewPage(1); // Reset reviews to page 1
+    setReviewPage(1);
   };
 
   const handlePrev = () => {
@@ -88,7 +89,7 @@ export default function ForkliftModels() {
     const prevIndex = (currentIndex - 1 + filteredModels.length) % filteredModels.length; 
     setSelectedModel(filteredModels[prevIndex]);
     setActiveImageIndex(0); 
-    setReviewPage(1); // Reset reviews to page 1
+    setReviewPage(1); 
   };
 
   const getModelImages = (model) => {
@@ -112,12 +113,11 @@ export default function ForkliftModels() {
   const activeImagesArray = getModelImages(selectedModel);
   const isBookable = selectedModel ? (selectedModel.status === 'Available' || selectedModel.status === 'Rented') : false;
 
-  // --- NEW: Calculate Pagination Variables ---
   const reviewCount = selectedModel?.reviews?.length || 0;
   const reviewPageCount = Math.max(1, Math.ceil(reviewCount / REVIEWS_PER_PAGE));
   const displayedReviews = selectedModel?.reviews 
     ? [...selectedModel.reviews]
-        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)) // Show newest first
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)) 
         .slice((reviewPage - 1) * REVIEWS_PER_PAGE, reviewPage * REVIEWS_PER_PAGE)
     : [];
 
@@ -138,7 +138,6 @@ export default function ForkliftModels() {
           </Box>
         </Box>
 
-        {/* FILTER BAR */}
         <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 5, p: 2, bgcolor: 'white', borderRadius: 3, border: '1px solid #e0e0e0', alignItems: 'center' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, pr: 2, borderRight: { md: '1px solid #eee' } }}>
                 <FilterListIcon color="action" />
@@ -176,7 +175,7 @@ export default function ForkliftModels() {
             const isAvailable = model.status === 'Available';
 
             return (
-              <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={model._id}>
+              <Grid item xs={12} sm={6} md={4} lg={3} key={model._id}>
                 <Card 
                   elevation={0}
                   onClick={() => handleOpenModal(model)}
@@ -212,9 +211,10 @@ export default function ForkliftModels() {
                         </Typography>
                     </Box>
                     
+                    {/* --- THE FIX: APPENDED lbs AND HP TO THE CARDS --- */}
                     <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', gap: 2, mt: 1 }}>
-                        <span><strong>Cap:</strong> {model.capacity || 'N/A'}</span>
-                        <span><strong>Pwr:</strong> {model.power || 'N/A'}</span>
+                        <span><strong>Cap:</strong> {model.capacity ? `${model.capacity} lbs` : 'N/A'}</span>
+                        <span><strong>Pwr:</strong> {model.power ? `${model.power} HP` : 'N/A'}</span>
                     </Typography>
 
                     <Box sx={{ mt: 'auto', pt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f3f5' }}>
@@ -313,6 +313,7 @@ export default function ForkliftModels() {
                     </Typography>
                 )}
 
+                {/* --- THE FIX: ADDED UNITS AND RENAMED LABELS TO THE MODAL --- */}
                 <List disablePadding sx={{ mt: selectedModel.status === 'Available' ? 3 : 1 }}>
                   <ListItem disableGutters>
                     <ListItemIcon sx={{ minWidth: 40 }}><BuildCircleIcon color="action" /></ListItemIcon>
@@ -320,11 +321,15 @@ export default function ForkliftModels() {
                   </ListItem>
                   <ListItem disableGutters>
                     <ListItemIcon sx={{ minWidth: 40 }}><FitnessCenterIcon color="action" /></ListItemIcon>
-                    <ListItemText primary="Lift Capacity" secondary={selectedModel.capacity || 'Standard / Unspecified'} />
+                    <ListItemText primary="Lift Capacity" secondary={selectedModel.capacity ? `${selectedModel.capacity} lbs` : 'Standard / Unspecified'} />
                   </ListItem>
                   <ListItem disableGutters>
                     <ListItemIcon sx={{ minWidth: 40 }}><EvStationIcon color="action" /></ListItemIcon>
-                    <ListItemText primary="Power Type" secondary={selectedModel.power || 'Electric / Gas'} />
+                    <ListItemText primary="Horsepower" secondary={selectedModel.power ? `${selectedModel.power} HP` : 'N/A'} />
+                  </ListItem>
+                  <ListItem disableGutters>
+                    <ListItemIcon sx={{ minWidth: 40 }}><LocalGasStationIcon color="action" /></ListItemIcon>
+                    <ListItemText primary="Fuel Type" secondary={selectedModel.fuel || 'N/A'} />
                   </ListItem>
                 </List>
 
@@ -373,7 +378,6 @@ export default function ForkliftModels() {
                             ))}
                         </Stack>
                         
-                        {/* --- NEW: PAGINATION COMPONENT --- */}
                         {reviewPageCount > 1 && (
                             <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4, pt: 2 }}>
                                 <Pagination 

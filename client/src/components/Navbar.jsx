@@ -12,7 +12,8 @@ export default function Navbar() {
     ? JSON.parse(localStorage.getItem('userInfo')) 
     : null;
 
-  const role = userInfo?.role; // 'owner', 'admin', 'staff', 'user', or 'customer'
+  // THE FIX: Normalize the role to catch formatting issues (e.g. 'Admin' instead of 'admin')
+  const role = userInfo?.role?.toLowerCase()?.trim(); 
 
   const handleMenu = (event) => setAnchorEl(event.currentTarget);
   const handleClose = () => setAnchorEl(null);
@@ -32,14 +33,17 @@ export default function Navbar() {
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           
-          {/* 1. MANAGEMENT LINKS (Owner & Admin/Staff) */}
+          {/* 1. MANAGEMENT LINKS (Owner, Admin, & Staff) */}
           {(role === 'owner' || role === 'admin' || role === 'staff') && (
             <>
-              {/* THE FIX: Automatically routes 'owner' to /owner-dashboard, and admins to /admin-dashboard */}
+              {/* Automatically routes 'owner' to /owner-dashboard, and admins to /admin-dashboard */}
               <Button color="inherit" onClick={() => navigate(role === 'owner' ? '/owner-dashboard' : '/admin-dashboard')}>
                 Dashboard
               </Button>
               <Button color="inherit" onClick={() => navigate('/inventory')}>Fleet</Button>
+              
+              {/* THE FIX: Moved Analytics here so ALL management roles can see it! */}
+              <Button color="inherit" onClick={() => navigate('/analytics')}>Analytics</Button>
             </>
           )}
 
@@ -60,7 +64,7 @@ export default function Navbar() {
           {userInfo ? (
             <Box sx={{ display: 'flex', alignItems: 'center', ml: 2 }}>
                 <Typography variant="body2" sx={{ mr: 1, display: { xs: 'none', sm: 'block' } }}>
-                    Hello, <strong>{userInfo.firstName || role}</strong>
+                    Hello, <strong>{userInfo.firstName || userInfo.role}</strong>
                 </Typography>
 
                 <IconButton size="large" onClick={handleMenu} color="inherit">
