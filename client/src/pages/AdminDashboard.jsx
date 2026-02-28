@@ -52,7 +52,7 @@ export default function AdminDashboard() {
   const fetchData = async () => {
     const userInfo = JSON.parse(localStorage.getItem('userInfo'));
     try {
-      const { data } = await axios.get('http://localhost:5000/api/rentals/all', {
+      const { data } = await axios.get('/api/rentals/all', {
         headers: { Authorization: `Bearer ${userInfo?.token}` }
       });
       
@@ -72,7 +72,7 @@ export default function AdminDashboard() {
 
   const handleAccept = async (id) => {
     try {
-      await axios.put(`http://localhost:5000/api/rentals/${id}`, { status: 'Active' });
+      await axios.put(`/api/rentals/${id}`, { status: 'Active' });
       setOpenModal(false); 
       fetchData();
     } catch (error) {
@@ -88,7 +88,7 @@ export default function AdminDashboard() {
 
   const executeRejectRental = async () => {
     try {
-      await axios.put(`http://localhost:5000/api/rentals/${rentalToReject}`, { 
+      await axios.put(`/api/rentals/${rentalToReject}`, { 
         status: 'Rejected',
         rejectionReason: rejectionReason || 'Declined by Administrator.' 
       });
@@ -107,7 +107,7 @@ export default function AdminDashboard() {
 
   const executeCompleteRental = async () => {
     try {
-      await axios.put(`http://localhost:5000/api/rentals/${rentalToComplete._id}`, { status: 'Completed' });
+      await axios.put(`/api/rentals/${rentalToComplete._id}`, { status: 'Completed' });
       setConfirmCompleteModal(false);
       fetchData();
     } catch (error) {

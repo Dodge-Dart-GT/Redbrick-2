@@ -60,7 +60,7 @@ export default function BookingPage() {
     }
 
     try {
-      await axios.post('http://localhost:5000/api/rentals', {
+      await axios.post('/api/rentals', {
         forkliftId: model._id,
         startDate: startDate.format('YYYY-MM-DD'),
         endDate: endDate.format('YYYY-MM-DD')

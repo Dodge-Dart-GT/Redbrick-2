@@ -44,7 +44,7 @@ export default function ForkliftManagement() {
 
   const fetchForklifts = async () => {
     try {
-      const { data } = await axios.get('http://localhost:5000/api/forklifts');
+      const { data } = await axios.get('/api/forklifts');
       setForklifts(data);
     } catch (error) {
       console.error("Error fetching forklifts:", error);
@@ -86,7 +86,7 @@ export default function ForkliftManagement() {
         for (const file of imageFiles) {
           const uploadData = new FormData();
           uploadData.append('image', file);
-          const uploadRes = await axios.post('http://localhost:5000/api/upload', uploadData, {
+          const uploadRes = await axios.post('/api/upload', uploadData, {
             headers: { 'Content-Type': 'multipart/form-data', Authorization: `Bearer ${userInfo.token}` }
           });
           uploadedImageUrls.push(uploadRes.data.image); 
@@ -104,7 +104,7 @@ export default function ForkliftManagement() {
         status: 'Available' 
       };
 
-      await axios.post('http://localhost:5000/api/forklifts', newForkliftData, {
+      await axios.post('/api/forklifts', newForkliftData, {
           headers: { Authorization: `Bearer ${userInfo.token}` }
       });
 
@@ -157,7 +157,7 @@ export default function ForkliftManagement() {
         for (const file of editImageFiles) {
           const uploadData = new FormData();
           uploadData.append('image', file);
-          const uploadRes = await axios.post('http://localhost:5000/api/upload', uploadData, {
+          const uploadRes = await axios.post('/api/upload', uploadData, {
             headers: { 'Content-Type': 'multipart/form-data', Authorization: `Bearer ${userInfo.token}` }
           });
           uploadedImageUrls.push(uploadRes.data.image);
@@ -172,7 +172,7 @@ export default function ForkliftManagement() {
         image: finalImageUrl 
       };
 
-      await axios.put(`http://localhost:5000/api/forklifts/${editFormData._id}`, updatedData, {
+      await axios.put(`/api/forklifts/${editFormData._id}`, updatedData, {
         headers: { Authorization: `Bearer ${userInfo.token}` }
       });
 
@@ -190,7 +190,7 @@ export default function ForkliftManagement() {
   const handleStatusChange = async (id, newStatus) => {
     const userInfo = JSON.parse(localStorage.getItem('userInfo'));
     try {
-      await axios.put(`http://localhost:5000/api/forklifts/${id}`, { status: newStatus }, { headers: { Authorization: `Bearer ${userInfo.token}` } });
+      await axios.put(`/api/forklifts/${id}`, { status: newStatus }, { headers: { Authorization: `Bearer ${userInfo.token}` } });
       setForklifts(prev => prev.map(f => f._id === id ? { ...f, status: newStatus } : f));
     } catch (error) {
       alert("Error updating status");
@@ -202,7 +202,7 @@ export default function ForkliftManagement() {
     const userInfo = JSON.parse(localStorage.getItem('userInfo'));
     if (window.confirm("Are you sure you want to remove this forklift?")) {
       try {
-        await axios.delete(`http://localhost:5000/api/forklifts/${id}`, { headers: { Authorization: `Bearer ${userInfo.token}` } });
+        await axios.delete(`/api/forklifts/${id}`, { headers: { Authorization: `Bearer ${userInfo.token}` } });
         fetchForklifts();
       } catch (error) {
         alert("Error deleting forklift");

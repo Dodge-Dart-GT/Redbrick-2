@@ -29,7 +29,7 @@ export default function UserManagement() {
     }
 
     try {
-      const { data } = await axios.get('http://localhost:5000/api/users', {
+      const { data } = await axios.get('/api/users', {
         headers: { Authorization: `Bearer ${userInfo.token}` }
       });
       setUsers(data);
@@ -42,7 +42,7 @@ export default function UserManagement() {
     const userInfo = JSON.parse(localStorage.getItem('userInfo'));
     try {
       // Assumes you have a PUT route at /api/users/:id/role
-      await axios.put(`http://localhost:5000/api/users/${userId}/role`, { role: newRole }, {
+      await axios.put(`/api/users/${userId}/role`, { role: newRole }, {
         headers: { Authorization: `Bearer ${userInfo.token}` }
       });
       fetchUsers(); // Refresh the table after updating

@@ -61,7 +61,7 @@ export default function CustomerDashboard() {
     if (!userInfo) { navigate('/login'); return; }
 
     try {
-      const { data } = await axios.get(`http://localhost:5000/api/rentals/myrequests/${userInfo._id}`, {
+      const { data } = await axios.get(`/api/rentals/myrequests/${userInfo._id}`, {
           headers: { Authorization: `Bearer ${userInfo.token}` }
       });
       
@@ -135,7 +135,7 @@ export default function CustomerDashboard() {
   const executeCancelBooking = async () => {
     const userInfo = JSON.parse(localStorage.getItem('userInfo'));
     try {
-      await axios.put(`http://localhost:5000/api/rentals/${rentalToCancel._id}`, 
+      await axios.put(`/api/rentals/${rentalToCancel._id}`, 
         { status: 'Cancelled' }, 
         { headers: { Authorization: `Bearer ${userInfo.token}` } }
       );
@@ -175,7 +175,7 @@ export default function CustomerDashboard() {
         } 
       };
       
-      const { data } = await axios.post('http://localhost:5000/api/upload', formData, config);
+      const { data } = await axios.post('/api/upload', formData, config);
       
       setReviewImage(data.url || data.secure_url || data); 
       setUploading(false);
@@ -196,7 +196,7 @@ export default function CustomerDashboard() {
     const userInfo = JSON.parse(localStorage.getItem('userInfo'));
 
     try {
-      await axios.post(`http://localhost:5000/api/forklifts/${reviewTarget.forklift._id}/reviews`, {
+      await axios.post(`/api/forklifts/${reviewTarget.forklift._id}/reviews`, {
         rating,
         comment,
         images: reviewImage ? [reviewImage] : []

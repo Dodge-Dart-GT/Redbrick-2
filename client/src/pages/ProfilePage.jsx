@@ -49,7 +49,7 @@ export default function ProfilePage() {
     const userInfo = JSON.parse(localStorage.getItem('userInfo'));
     
     try {
-      const { data } = await axios.put(`http://localhost:5000/api/users/profile/${userInfo._id}`, user, {
+      const { data } = await axios.put(`/api/users/profile/${userInfo._id}`, user, {
         headers: { Authorization: `Bearer ${userInfo.token}` }
       });
       

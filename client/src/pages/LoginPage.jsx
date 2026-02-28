@@ -109,7 +109,7 @@ export default function LoginPage() {
 
     try {
       // THE FIX: Dynamically pull the API URL from Netlify, or default to localhost for dev
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const API_URL = import.meta.env.VITE_API_URL || '';
       const res = await axios.post(`${API_URL}/api/auth${endpoint}`, payload);
       
       if (isLogin) {

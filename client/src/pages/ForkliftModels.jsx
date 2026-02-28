@@ -44,7 +44,7 @@ export default function ForkliftModels() {
   useEffect(() => {
     const fetchModels = async () => {
       try {
-        const { data } = await axios.get('http://localhost:5000/api/forklifts');
+        const { data } = await axios.get('/api/forklifts');
         setModels(data);
       } catch (error) {
         console.error('Failed to fetch models', error);

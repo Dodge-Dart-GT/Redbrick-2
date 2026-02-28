@@ -39,7 +39,7 @@ export default function AnalyticsDashboard() {
       setLoading(true);
 
       try {
-        const { data } = await axios.get(`http://localhost:5000/api/analytics?timeframe=${timeframe}`, {
+        const { data } = await axios.get(`/api/analytics?timeframe=${timeframe}`, {
           headers: { Authorization: `Bearer ${userInfo.token}` }
         });
         setAnalytics(data);
