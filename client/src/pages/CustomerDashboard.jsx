@@ -6,7 +6,7 @@ import {
   TableContainer, TableHead, TableRow, Button, List, ListItem,
   ListItemText, ListItemIcon, TextField, IconButton,
   Dialog, DialogTitle, DialogContent, DialogActions, Divider,
-  Pagination, Avatar, Stack
+  Pagination, Avatar, Stack, Rating, Snackbar, Alert, CircularProgress
 } from '@mui/material';
 import Navbar from '../components/Navbar';
 
@@ -20,16 +20,28 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import InfoIcon from '@mui/icons-material/Info';
 import DoneAllIcon from '@mui/icons-material/DoneAll';
-import BuildCircleIcon from '@mui/icons-material/BuildCircle'; // <-- NEW ICON IMPORTED
+import BuildCircleIcon from '@mui/icons-material/BuildCircle';
+import RateReviewIcon from '@mui/icons-material/RateReview'; 
+import StarIcon from '@mui/icons-material/Star';
+import PhotoCameraIcon from '@mui/icons-material/PhotoCamera'; // <-- NEW CAMERA ICON
 
 export default function CustomerDashboard() {
   const navigate = useNavigate();
   const [myRentals, setMyRentals] = useState([]);
   const [stats, setStats] = useState({ requested: 0, active: 0, completed: 0, due: 0 });
 
-  // Modal State
+  // Details Modal State
   const [openModal, setOpenModal] = useState(false);
   const [selectedReq, setSelectedReq] = useState(null);
+
+  // Review Modal State
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [reviewTarget, setReviewTarget] = useState(null);
+  const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState("");
+  const [reviewImage, setReviewImage] = useState("");
+  const [uploading, setUploading] = useState(false); // <-- NEW UPLOAD STATE
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
   // Pagination & Search State
   const [page, setPage] = useState(1);
@@ -37,30 +49,31 @@ export default function CustomerDashboard() {
   const ITEMS_PER_PAGE = 5; 
 
   useEffect(() => {
-    const fetchMyRentals = async () => {
-      const userInfo = JSON.parse(localStorage.getItem('userInfo'));
-      if (!userInfo) { navigate('/login'); return; }
-
-      try {
-        const { data } = await axios.get(`http://localhost:5000/api/rentals/myrequests/${userInfo._id}`, {
-            headers: { Authorization: `Bearer ${userInfo.token}` }
-        });
-        
-        const sortedData = data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-        setMyRentals(sortedData);
-
-        setStats({
-          requested: sortedData.filter(r => r.status === 'Pending').length,
-          active: sortedData.filter(r => r.status === 'Active').length,
-          completed: sortedData.filter(r => r.status === 'Completed').length,
-          due: sortedData.filter(r => r.status === 'Rejected').length 
-        });
-      } catch (error) {
-        console.error("Error fetching rentals:", error);
-      }
-    };
     fetchMyRentals();
   }, [navigate]);
+
+  const fetchMyRentals = async () => {
+    const userInfo = JSON.parse(localStorage.getItem('userInfo'));
+    if (!userInfo) { navigate('/login'); return; }
+
+    try {
+      const { data } = await axios.get(`http://localhost:5000/api/rentals/myrequests/${userInfo._id}`, {
+          headers: { Authorization: `Bearer ${userInfo.token}` }
+      });
+      
+      const sortedData = data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      setMyRentals(sortedData);
+
+      setStats({
+        requested: sortedData.filter(r => r.status === 'Pending').length,
+        active: sortedData.filter(r => r.status === 'Active').length,
+        completed: sortedData.filter(r => r.status === 'Completed').length,
+        due: sortedData.filter(r => r.status === 'Rejected').length 
+      });
+    } catch (error) {
+      console.error("Error fetching rentals:", error);
+    }
+  };
 
   const getStatusColor = (status) => {
     switch(status) {
@@ -95,6 +108,67 @@ export default function CustomerDashboard() {
 
   const pageCount = Math.max(1, Math.ceil(filteredRentals.length / ITEMS_PER_PAGE));
   const displayedRentals = filteredRentals.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
+
+  // --- REVIEW HANDLERS ---
+  const handleOpenReview = (rental) => {
+    setReviewTarget(rental);
+    setRating(0);
+    setComment("");
+    setReviewImage("");
+    setUploading(false);
+    setReviewModalOpen(true);
+  };
+
+  // --- NEW: DIRECT IMAGE UPLOAD LOGIC ---
+  const uploadFileHandler = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('image', file); // Assumes your backend expects a file named 'image'
+    setUploading(true);
+
+    try {
+      const config = { headers: { 'Content-Type': 'multipart/form-data' } };
+      
+      // Make sure this matches your existing Cloudinary backend upload route!
+      const { data } = await axios.post('http://localhost:5000/api/upload', formData, config);
+      
+      // Usually Cloudinary returns data.url or data.secure_url
+      setReviewImage(data.url || data.secure_url || data); 
+      setUploading(false);
+      setSnackbar({ open: true, message: 'Image uploaded successfully!', severity: 'success' });
+    } catch (error) {
+      console.error(error);
+      setUploading(false);
+      setSnackbar({ open: true, message: 'Image upload failed. Please check file size.', severity: 'error' });
+    }
+  };
+
+  const submitReview = async () => {
+    if (!rating || !comment) {
+      setSnackbar({ open: true, message: 'Rating and Comment are required fields.', severity: 'warning' });
+      return;
+    }
+
+    const userInfo = JSON.parse(localStorage.getItem('userInfo'));
+
+    try {
+      await axios.post(`http://localhost:5000/api/forklifts/${reviewTarget.forklift._id}/reviews`, {
+        rating,
+        comment,
+        images: reviewImage ? [reviewImage] : []
+      }, {
+        headers: { Authorization: `Bearer ${userInfo.token}` }
+      });
+
+      setSnackbar({ open: true, message: 'Review successfully submitted! Thank you.', severity: 'success' });
+      setReviewModalOpen(false);
+      fetchMyRentals(); 
+    } catch (error) {
+      setSnackbar({ open: true, message: error.response?.data?.message || 'Failed to submit review.', severity: 'error' });
+    }
+  };
 
   return (
     <Box sx={{ minHeight: '100vh', backgroundColor: '#f8f9fa', pb: 8 }}>
@@ -147,7 +221,7 @@ export default function CustomerDashboard() {
                       <TableCell sx={{ fontWeight: 'bold', py: 2 }}>EQUIPMENT</TableCell>
                       <TableCell sx={{ fontWeight: 'bold', py: 2 }}>RENT DATE</TableCell>
                       <TableCell sx={{ fontWeight: 'bold', py: 2 }}>STATUS</TableCell>
-                      <TableCell align="center" sx={{ fontWeight: 'bold', py: 2 }}>DETAILS</TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 'bold', py: 2 }}>ACTIONS</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -183,9 +257,17 @@ export default function CustomerDashboard() {
                           </TableCell>
                           
                           <TableCell align="center" sx={{ py: 2.5 }}>
-                            <IconButton onClick={() => {setSelectedReq(row); setOpenModal(true);}} sx={{ bgcolor: '#f1f3f5', '&:hover': { bgcolor: '#e0e0e0' } }}>
-                              <VisibilityIcon color="primary"/>
-                            </IconButton>
+                            <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
+                              <IconButton onClick={() => {setSelectedReq(row); setOpenModal(true);}} sx={{ bgcolor: '#f1f3f5', '&:hover': { bgcolor: '#e0e0e0' } }}>
+                                <VisibilityIcon color="primary"/>
+                              </IconButton>
+                              
+                              {row.status === 'Completed' && (
+                                <IconButton onClick={() => handleOpenReview(row)} sx={{ bgcolor: '#e8f5e9', '&:hover': { bgcolor: '#c8e6c9' } }}>
+                                  <RateReviewIcon color="success"/>
+                                </IconButton>
+                              )}
+                            </Box>
                           </TableCell>
                         </TableRow>
                       ))
@@ -251,6 +333,76 @@ export default function CustomerDashboard() {
         </Grid>
       </Box>
 
+      {/* --- REVIEW SUBMISSION MODAL WITH DIRECT UPLOAD --- */}
+      <Dialog open={reviewModalOpen} onClose={() => setReviewModalOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 'bold', bgcolor: '#1a237e', color: 'white', py: 2.5, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <RateReviewIcon /> RATE YOUR EXPERIENCE
+        </DialogTitle>
+        <DialogContent dividers sx={{ p: { xs: 3, md: 5 }, bgcolor: '#f8f9fa' }}>
+          <Box sx={{ textAlign: 'center', mb: 4 }}>
+             <Typography variant="h6" fontWeight="bold">How was the {reviewTarget?.forklift?.make} {reviewTarget?.forklift?.model}?</Typography>
+             <Typography variant="body2" color="text.secondary">Your feedback helps others choose the right equipment.</Typography>
+          </Box>
+          
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+             <Rating 
+                value={rating} 
+                onChange={(event, newValue) => setRating(newValue)} 
+                size="large"
+                emptyIcon={<StarIcon style={{ opacity: 0.55 }} fontSize="inherit" />}
+                sx={{ fontSize: '3.5rem', color: '#ffb400' }}
+             />
+
+             <TextField
+                label="Share your thoughts..."
+                multiline
+                rows={4}
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                fullWidth
+                variant="outlined"
+                sx={{ bgcolor: 'white' }}
+             />
+
+             {/* NATIVE UPLOAD BUTTON */}
+             <Box sx={{ width: '100%', textAlign: 'left', mt: 1 }}>
+               <Typography variant="subtitle2" fontWeight="bold" color="text.secondary" gutterBottom>
+                 Attach a Photo (Optional)
+               </Typography>
+               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                 <Button
+                   variant="outlined"
+                   component="label"
+                   startIcon={uploading ? <CircularProgress size={20} /> : <PhotoCameraIcon />}
+                   disabled={uploading}
+                   sx={{ py: 1, px: 3, fontWeight: 'bold' }}
+                 >
+                   {uploading ? 'Uploading...' : 'Take or Upload Photo'}
+                   <input
+                     type="file"
+                     hidden
+                     accept="image/*"
+                     onChange={uploadFileHandler}
+                   />
+                 </Button>
+                 
+                 {reviewImage && (
+                   <Avatar 
+                      src={reviewImage} 
+                      variant="rounded" 
+                      sx={{ width: 55, height: 55, border: '2px solid #1a237e' }} 
+                   />
+                 )}
+               </Box>
+             </Box>
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ p: 3, bgcolor: '#f1f3f5' }}>
+          <Button onClick={() => setReviewModalOpen(false)} sx={{ fontWeight: 'bold', color: 'text.secondary', mr: 2 }}>Cancel</Button>
+          <Button onClick={submitReview} variant="contained" size="large" sx={{ fontWeight: 'bold', bgcolor: '#1a237e', px: 5 }} disabled={uploading}>Submit Review</Button>
+        </DialogActions>
+      </Dialog>
+
       {/* --- REDESIGNED AGREEMENT DETAILS MODAL WITH SPECS --- */}
       <Dialog open={openModal} onClose={() => setOpenModal(false)} fullWidth maxWidth="md">
         <DialogTitle sx={{ fontWeight: 'bold', bgcolor: '#1a237e', color: 'white', py: 2.5 }}>
@@ -260,7 +412,6 @@ export default function CustomerDashboard() {
           {selectedReq && (
             <Grid container spacing={4}>
               
-              {/* Header: Equipment & Status */}
               <Grid item xs={12} md={8} sx={{ display: 'flex', gap: 4, alignItems: 'center' }}>
                 <Avatar 
                     src={selectedReq.forklift?.images?.[0] || selectedReq.forklift?.image} 
@@ -291,7 +442,6 @@ export default function CustomerDashboard() {
 
               <Grid item xs={12}><Divider /></Grid>
 
-              {/* TWO-COLUMN LAYOUT: Timeframe (Left) & Specifications (Right) */}
               <Grid item xs={12} md={6}>
                 <Typography variant="subtitle1" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, fontWeight: 'bold' }}>
                   <CalendarMonthIcon /> RENTAL TIMEFRAME
@@ -314,7 +464,6 @@ export default function CustomerDashboard() {
                 </Paper>
               </Grid>
 
-              {/* NEW: Vehicle Specifications Box */}
               <Grid item xs={12} md={6}>
                 <Typography variant="subtitle1" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, fontWeight: 'bold' }}>
                   <BuildCircleIcon /> VEHICLE SPECIFICATIONS
@@ -341,7 +490,6 @@ export default function CustomerDashboard() {
                 </Paper>
               </Grid>
 
-              {/* Rejection Details (Drops below if present) */}
               {selectedReq.status === 'Rejected' && selectedReq.rejectionReason && (
                 <Grid item xs={12}>
                   <Typography variant="subtitle1" color="error.main" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, mt: 2, fontWeight: 'bold' }}>
@@ -360,6 +508,11 @@ export default function CustomerDashboard() {
           <Button onClick={() => setOpenModal(false)} variant="contained" size="large" sx={{ fontWeight: 'bold', bgcolor: '#1a237e', px: 5 }}>Close Window</Button>
         </DialogActions>
       </Dialog>
+
+      <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar({ ...snackbar, open: false })}>
+        <Alert severity={snackbar.severity} sx={{ width: '100%', fontWeight: 'bold' }}>{snackbar.message}</Alert>
+      </Snackbar>
+
     </Box>
   );
 }

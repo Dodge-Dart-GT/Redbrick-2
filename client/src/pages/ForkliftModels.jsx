@@ -5,7 +5,8 @@ import {
   Box, Grid, Typography, TextField, Button, Card, CardMedia,
   CardContent, Chip, InputAdornment, List, ListItem, 
   ListItemIcon, ListItemText, Dialog, DialogTitle, DialogContent, 
-  DialogActions, IconButton, Stack, MenuItem, Select, FormControl, InputLabel
+  DialogActions, IconButton, Stack, MenuItem, Select, FormControl, InputLabel,
+  Rating, Avatar, Divider // <-- NEW IMPORTS FOR REVIEWS
 } from '@mui/material';
 import Navbar from '../components/Navbar';
 
@@ -20,12 +21,13 @@ import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos'; 
 import FilterListIcon from '@mui/icons-material/FilterList';
 import InfoIcon from '@mui/icons-material/Info';
+import StarIcon from '@mui/icons-material/Star';
 
 export default function ForkliftModels() {
   const navigate = useNavigate();
   const [models, setModels] = useState([]);
   
-  // --- NEW: Filter States ---
+  // Filter States
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [makeFilter, setMakeFilter] = useState('All');
@@ -46,10 +48,8 @@ export default function ForkliftModels() {
     fetchModels();
   }, []);
 
-  // --- NEW: Dynamic Options for Dropdowns ---
   const uniqueMakes = ['All', ...new Set(models.map(m => m.make).filter(Boolean))];
 
-  // --- NEW: Apply all filters to the grid ---
   const filteredModels = models.filter(m => {
     const matchesSearch = (m.make || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
                           (m.model || '').toLowerCase().includes(searchTerm.toLowerCase());
@@ -91,7 +91,6 @@ export default function ForkliftModels() {
     return ['https://placehold.co/600x400?text=No+Vehicle+Image']; 
   };
 
-  // --- NEW: Helper to display availability status ---
   const renderAvailabilityText = (model) => {
     if (model.status === 'Rented') {
       return model.nextAvailableDate 
@@ -104,8 +103,6 @@ export default function ForkliftModels() {
   };
 
   const activeImagesArray = getModelImages(selectedModel);
-
-  // --- NEW: Allow booking if the forklift is Available OR Rented ---
   const isBookable = selectedModel ? (selectedModel.status === 'Available' || selectedModel.status === 'Rented') : false;
 
   return (
@@ -125,7 +122,7 @@ export default function ForkliftModels() {
           </Box>
         </Box>
 
-        {/* --- NEW: FILTER BAR --- */}
+        {/* FILTER BAR */}
         <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 5, p: 2, bgcolor: 'white', borderRadius: 3, border: '1px solid #e0e0e0', alignItems: 'center' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, pr: 2, borderRight: { md: '1px solid #eee' } }}>
                 <FilterListIcon color="action" />
@@ -181,7 +178,6 @@ export default function ForkliftModels() {
                     sx={{ objectFit: 'cover', opacity: isAvailable ? 1 : 0.7 }}
                   />
                   
-                  {/* Floating Availability Badge */}
                   {!isAvailable && (
                       <Box sx={{ position: 'absolute', top: 12, left: 12, bgcolor: 'rgba(0,0,0,0.7)', color: 'white', px: 1.5, py: 0.5, borderRadius: 1, backdropFilter: 'blur(4px)' }}>
                           <Typography variant="caption" fontWeight="bold">
@@ -192,6 +188,14 @@ export default function ForkliftModels() {
 
                   <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
                     <Typography variant="h6" fontWeight="900" sx={{ lineHeight: 1.2 }}>{model.make} {model.model}</Typography>
+                    
+                    {/* --- NEW: STAR RATING DISPLAY ON CARD --- */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <Rating value={model.rating || 0} readOnly size="small" precision={0.5} emptyIcon={<StarIcon style={{ opacity: 0.55 }} fontSize="inherit" />} />
+                        <Typography variant="caption" color="text.secondary" fontWeight="bold">
+                            ({model.numReviews || 0})
+                        </Typography>
+                    </Box>
                     
                     <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', gap: 2, mt: 1 }}>
                         <span><strong>Cap:</strong> {model.capacity || 'N/A'}</span>
@@ -221,6 +225,7 @@ export default function ForkliftModels() {
         </Grid>
       </Box>
 
+      {/* MODAL */}
       <Dialog open={openModal} onClose={handleCloseModal} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
         {selectedModel && (
           <>
@@ -275,12 +280,21 @@ export default function ForkliftModels() {
 
               <Box sx={{ p: 4 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-                  <Typography variant="h4" fontWeight="900" color="#1a237e">{selectedModel.make} {selectedModel.model}</Typography>
+                  <Box>
+                    <Typography variant="h4" fontWeight="900" color="#1a237e">{selectedModel.make} {selectedModel.model}</Typography>
+                    {/* --- NEW: STAR RATING DISPLAY IN MODAL --- */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+                        <Rating value={selectedModel.rating || 0} readOnly size="small" precision={0.5} />
+                        <Typography variant="body2" color="text.secondary" fontWeight="bold">
+                            {selectedModel.rating ? selectedModel.rating.toFixed(1) : '0'} ({selectedModel.numReviews || 0} Reviews)
+                        </Typography>
+                    </Box>
+                  </Box>
                   <Chip label={selectedModel.status || 'Available'} color={selectedModel.status === 'Available' ? 'success' : selectedModel.status === 'Rented' ? 'warning' : 'error'} sx={{ fontWeight: 'bold', borderRadius: 1 }} />
                 </Box>
                 
                 {selectedModel.status !== 'Available' && (
-                    <Typography variant="subtitle2" color="error.main" fontWeight="bold" sx={{ mb: 3 }}>
+                    <Typography variant="subtitle2" color="error.main" fontWeight="bold" sx={{ mt: 2, mb: 1 }}>
                        Notice: {renderAvailabilityText(selectedModel)}
                     </Typography>
                 )}
@@ -299,10 +313,65 @@ export default function ForkliftModels() {
                     <ListItemText primary="Power Type" secondary={selectedModel.power || 'Electric / Gas'} />
                   </ListItem>
                 </List>
+
+                {/* --- NEW: CUSTOMER REVIEWS SECTION --- */}
+                <Divider sx={{ my: 4 }} />
+                <Typography variant="h6" fontWeight="900" color="#1a237e" sx={{ mb: 3 }}>
+                    VERIFIED CUSTOMER REVIEWS
+                </Typography>
+
+                {selectedModel.reviews && selectedModel.reviews.length > 0 ? (
+                    <Stack spacing={3}>
+                        {selectedModel.reviews.map((review, idx) => (
+                            <Box key={idx} sx={{ p: 3, bgcolor: '#f8f9fa', borderRadius: 3, border: '1px solid #e0e0e0' }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1.5 }}>
+                                    <Avatar sx={{ width: 40, height: 40, bgcolor: '#1a237e', fontWeight: 'bold' }}>
+                                        {review.name.charAt(0)}
+                                    </Avatar>
+                                    <Box>
+                                        <Typography variant="subtitle1" fontWeight="bold" sx={{ lineHeight: 1.2 }}>{review.name}</Typography>
+                                        <Rating value={review.rating} readOnly size="small" sx={{ mt: 0.5 }} />
+                                    </Box>
+                                    <Typography variant="caption" color="text.secondary" sx={{ ml: 'auto', alignSelf: 'flex-start' }}>
+                                        {new Date(review.createdAt).toLocaleDateString()}
+                                    </Typography>
+                                </Box>
+                                
+                                <Typography variant="body1" color="text.primary" sx={{ mt: 1 }}>
+                                    "{review.comment}"
+                                </Typography>
+
+                                {/* Display uploaded customer images if they exist */}
+                                {review.images && review.images.length > 0 && (
+                                    <Box sx={{ display: 'flex', gap: 1.5, mt: 2 }}>
+                                        {review.images.map((img, imgIdx) => (
+                                            <Avatar 
+                                              key={imgIdx} 
+                                              src={img} 
+                                              variant="rounded" 
+                                              sx={{ width: 80, height: 80, border: '1px solid #ccc', cursor: 'pointer' }} 
+                                              onClick={() => window.open(img, '_blank')}
+                                            />
+                                        ))}
+                                    </Box>
+                                )}
+                            </Box>
+                        ))}
+                    </Stack>
+                ) : (
+                    <Box sx={{ p: 3, textAlign: 'center', bgcolor: '#f1f3f5', borderRadius: 3 }}>
+                        <Typography variant="body1" color="text.secondary" fontWeight="bold">
+                            No reviews yet for this model.
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" mt={0.5}>
+                            Book it today and be the first to leave feedback!
+                        </Typography>
+                    </Box>
+                )}
+
               </Box>
             </DialogContent>
 
-            {/* --- NEW: Dynamic Button changes based on status --- */}
             <DialogActions sx={{ p: 3, bgcolor: '#f8f9fa', borderTop: '1px solid #e0e0e0' }}>
               <Button onClick={handleCloseModal} sx={{ fontWeight: 'bold', color: 'text.secondary', mr: 2 }}>CANCEL</Button>
               <Button 

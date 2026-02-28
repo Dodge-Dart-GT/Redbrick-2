@@ -31,6 +31,63 @@ router.get('/', async (req, res) => {
   }
 });
 
+// --- NEW: ADD A VERIFIED REVIEW ---
+// @desc    Create a new verified review
+// @route   POST /api/forklifts/:id/reviews
+// @access  Private (Must be logged in)
+router.post('/:id/reviews', protect, async (req, res) => {
+  const { rating, comment, images } = req.body;
+
+  try {
+    const forklift = await Forklift.findById(req.params.id);
+
+    if (forklift) {
+      // 1. Check if the user already reviewed this exact forklift
+      const alreadyReviewed = forklift.reviews.find(
+        (r) => r.user.toString() === req.user._id.toString()
+      );
+
+      if (alreadyReviewed) {
+        return res.status(400).json({ message: 'You have already reviewed this specific equipment.' });
+      }
+
+      // 2. SECURITY CHECK: Did they actually complete a rental for it?
+      const hasCompletedRental = await RentalRequest.findOne({
+        user: req.user._id,
+        forklift: req.params.id,
+        status: 'Completed'
+      });
+
+      if (!hasCompletedRental) {
+        return res.status(400).json({ message: 'You can only leave a review after your rental agreement is marked as Completed.' });
+      }
+
+      // 3. Create the review
+      const review = {
+        user: req.user._id,
+        name: `${req.user.firstName} ${req.user.lastName}`,
+        rating: Number(rating),
+        comment,
+        images: images || []
+      };
+
+      forklift.reviews.push(review);
+
+      // 4. Update the totals and calculate the new average star rating
+      forklift.numReviews = forklift.reviews.length;
+      forklift.rating = forklift.reviews.reduce((acc, item) => item.rating + acc, 0) / forklift.reviews.length;
+
+      await forklift.save();
+      res.status(201).json({ message: 'Review added successfully!' });
+    } else {
+      res.status(404).json({ message: 'Forklift not found.' });
+    }
+  } catch (error) {
+    console.error("Review Error:", error);
+    res.status(500).json({ message: 'Server error while submitting review.' });
+  }
+});
+
 // 2. ADD A NEW FORKLIFT (Secured)
 router.post('/', protect, adminOrOwner, async (req, res) => {
   try {
