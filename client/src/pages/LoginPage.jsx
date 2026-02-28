@@ -224,7 +224,9 @@ export default function LoginPage() {
                 <List dense sx={{ mt: 0.5 }}>
                   <ValidationItem valid={validations.hasLength} text="Minimum 8 characters" />
                   <ValidationItem valid={validations.hasUpper} text="Include Uppercase (A-Z)" />
+                  <ValidationItem valid={validations.hasLower} text="Include Lowercase (a-z)" />
                   <ValidationItem valid={validations.hasNumber} text="Include Numbers (0-9)" />
+                  <ValidationItem valid={validations.hasSpecial} text="Include Special Character (!@#$)" />
                   <ValidationItem valid={doPasswordsMatch && confirmPassword.length > 0} text="Passwords Match" />
                 </List>
               </Box>
