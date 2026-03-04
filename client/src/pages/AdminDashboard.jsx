@@ -131,17 +131,15 @@ export default function AdminDashboard() {
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
   };
 
-  // --- THE FIX: DYNAMIC EARLY/LATE CALCULATION ---
   const getReturnStatus = (expectedEnd, actualReturn) => {
     if (!actualReturn) return null;
     
-    // Normalize to compare just the calendar days (ignore exact hours/minutes)
     const expected = new Date(expectedEnd).setHours(0,0,0,0);
     const returned = new Date(actualReturn).setHours(0,0,0,0);
     
-    if (returned < expected) return { label: 'Returned Early', color: '#2e7d32', bg: '#e8f5e9' }; // Green
-    if (returned > expected) return { label: 'Returned Late', color: '#d32f2f', bg: '#ffebee' }; // Red
-    return { label: 'Returned On Time', color: '#1565c0', bg: '#e3f2fd' }; // Blue
+    if (returned < expected) return { label: 'Returned Early', color: '#2e7d32', bg: '#e8f5e9' }; 
+    if (returned > expected) return { label: 'Returned Late', color: '#d32f2f', bg: '#ffebee' }; 
+    return { label: 'Returned On Time', color: '#1565c0', bg: '#e3f2fd' }; 
   };
 
   const filteredRequests = requests.filter(r => {
@@ -180,7 +178,7 @@ export default function AdminDashboard() {
             { label: 'Completed', val: stats.completed, col: '#455a64', icon: <DoneAllIcon /> },
             { label: 'Total Logs', val: stats.total, col: '#1a237e', icon: <AssignmentIcon /> },
           ].map((kpi, i) => (
-            <Grid item xs={12} sm={6} md={3} key={i}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }} key={i}>
               <Paper elevation={0} sx={{ p: 3, borderRadius: 4, border: '1px solid #e0e0e0', display: 'flex', alignItems: 'center', gap: 3 }}>
                 <Avatar sx={{ bgcolor: `${kpi.col}15`, color: kpi.col, width: 60, height: 60 }}>{kpi.icon}</Avatar>
                 <Box>
@@ -193,7 +191,7 @@ export default function AdminDashboard() {
         </Grid>
 
         <Grid container spacing={4}>
-          <Grid item xs={12} md={8}>
+          <Grid size={{ xs: 12, md: 8 }}>
             <Paper elevation={0} sx={{ p: 4, borderRadius: 4, border: '1px solid #e0e0e0', height: '100%' }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4, flexWrap: 'wrap', gap: 2 }}>
                 <Typography variant="h5" fontWeight="900" color="#1a237e">CUSTOMER AGREEMENTS</Typography>
@@ -207,7 +205,7 @@ export default function AdminDashboard() {
               </Box>
               
               <TableContainer sx={{ minHeight: 400 }}>
-                <Table sx={{ minWidth: 700 }}>
+                <Table sx={{ minWidth: 700, whiteSpace: 'nowrap' }}>
                   <TableHead sx={{ bgcolor: '#f1f3f5' }}>
                     <TableRow>
                       <TableCell sx={{ fontWeight: 'bold', py: 2 }}>CUSTOMER</TableCell>
@@ -237,7 +235,6 @@ export default function AdminDashboard() {
                             </Box>
                         </TableCell>
 
-                        {/* TABLE DATES WITH EARLY/LATE BADGE */}
                         <TableCell sx={{ py: 2 }}>
                           <Typography variant="body2" fontWeight="bold" color="text.primary">
                             Out: {row.startDate ? new Date(row.startDate).toLocaleDateString() : 'N/A'}
@@ -287,7 +284,7 @@ export default function AdminDashboard() {
             </Paper>
           </Grid>
 
-          <Grid item xs={12} md={4}>
+          <Grid size={{ xs: 12, md: 4 }}>
             <Paper elevation={0} sx={{ p: 4, borderRadius: 4, border: '1px solid #e0e0e0', height: '100%' }}>
               <Typography variant="h6" fontWeight="900" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#1a237e' }}>
                 <NotificationsActiveIcon color="warning" /> RECENT ACTIVITY
@@ -332,25 +329,25 @@ export default function AdminDashboard() {
           {selectedReq && (
             <Grid container spacing={4}>
               
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Typography variant="subtitle1" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, fontWeight: 'bold' }}>
                   <PersonIcon /> CUSTOMER INFORMATION
                 </Typography>
                 <Paper elevation={0} sx={{ p: 3, border: '1px solid #e0e0e0', borderRadius: 4, bgcolor: 'white' }}>
                     <Grid container spacing={3}>
-                        <Grid item xs={12} sm={6}>
+                        <Grid size={{ xs: 12, sm: 6 }}>
                             <Typography variant="caption" color="text.secondary" fontWeight="bold">Full Name</Typography>
                             <Typography variant="h6" fontWeight="bold">{selectedReq.user?.firstName} {selectedReq.user?.lastName}</Typography>
                         </Grid>
-                        <Grid item xs={12} sm={6}>
+                        <Grid size={{ xs: 12, sm: 6 }}>
                             <Typography variant="caption" color="text.secondary" fontWeight="bold">Contact Email</Typography>
                             <Typography variant="h6" fontWeight="bold">{selectedReq.user?.email}</Typography>
                         </Grid>
-                        <Grid item xs={12} sm={6}>
+                        <Grid size={{ xs: 12, sm: 6 }}>
                             <Typography variant="caption" color="text.secondary" fontWeight="bold">Phone Number</Typography>
                             <Typography variant="body1" fontWeight="bold">{selectedReq.user?.phone || 'Not Provided'}</Typography>
                         </Grid>
-                        <Grid item xs={12} sm={6}>
+                        <Grid size={{ xs: 12, sm: 6 }}>
                             <Typography variant="caption" color="text.secondary" fontWeight="bold">Address</Typography>
                             <Typography variant="body1" fontWeight="bold">{selectedReq.user?.address || 'Not Provided'}</Typography>
                         </Grid>
@@ -358,8 +355,7 @@ export default function AdminDashboard() {
                 </Paper>
               </Grid>
 
-              {/* --- THE FIX: MODAL DATES WITH EARLY/LATE DISPLAY --- */}
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant="subtitle1" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, fontWeight: 'bold' }}>
                   <CalendarMonthIcon /> RENTAL TIMEFRAME
                 </Typography>
@@ -399,7 +395,7 @@ export default function AdminDashboard() {
                 </Paper>
               </Grid>
 
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant="subtitle1" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, fontWeight: 'bold' }}>
                   <BuildCircleIcon /> EQUIPMENT REQUESTED
                 </Typography>
@@ -413,19 +409,19 @@ export default function AdminDashboard() {
                        </Box>
                    </Box>
                    <Grid container spacing={2}>
-                      <Grid item xs={6}>
+                      <Grid size={{ xs: 6 }}>
                           <Typography variant="caption" color="text.secondary" fontWeight="bold" textTransform="uppercase">Lift Capacity</Typography>
                           <Typography variant="body2" fontWeight="bold">{selectedReq.forklift?.capacity ? `${selectedReq.forklift.capacity} lbs` : 'N/A'}</Typography>
                       </Grid>
-                      <Grid item xs={6}>
+                      <Grid size={{ xs: 6 }}>
                           <Typography variant="caption" color="text.secondary" fontWeight="bold" textTransform="uppercase">Horsepower</Typography>
                           <Typography variant="body2" fontWeight="bold">{selectedReq.forklift?.power ? `${selectedReq.forklift.power} HP` : 'N/A'}</Typography>
                       </Grid>
-                      <Grid item xs={6}>
+                      <Grid size={{ xs: 6 }}>
                           <Typography variant="caption" color="text.secondary" fontWeight="bold" textTransform="uppercase">Torque Rating</Typography>
                           <Typography variant="body2" fontWeight="bold">{selectedReq.forklift?.torque || 'N/A'}</Typography>
                       </Grid>
-                      <Grid item xs={6}>
+                      <Grid size={{ xs: 6 }}>
                           <Typography variant="caption" color="text.secondary" fontWeight="bold" textTransform="uppercase">Fuel Type</Typography>
                           <Typography variant="body2" fontWeight="bold">{selectedReq.forklift?.fuel || 'N/A'}</Typography>
                       </Grid>
@@ -434,7 +430,7 @@ export default function AdminDashboard() {
               </Grid>
 
               {selectedReq.status === 'Pending' && (
-                  <Grid item xs={12}>
+                  <Grid size={{ xs: 12 }}>
                       <Paper elevation={0} sx={{ p: 3, mt: 2, bgcolor: '#e3f2fd', borderRadius: 4, border: '1px solid #bbdefb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <Typography variant="body1" fontWeight="bold" color="#0d47a1">Requires Administrative Action</Typography>
                           <Box sx={{ display: 'flex', gap: 2 }}>
@@ -446,7 +442,7 @@ export default function AdminDashboard() {
               )}
 
               {selectedReq.status === 'Rejected' && selectedReq.rejectionReason && (
-                <Grid item xs={12}>
+                <Grid size={{ xs: 12 }}>
                   <Box sx={{ p: 3, bgcolor: '#ffebee', borderRadius: 4, border: '1px solid #ffcdd2' }}>
                     <Typography variant="subtitle2" color="error.main" fontWeight="bold">Reason for Rejection:</Typography>
                     <Typography variant="body1" color="error.dark" mt={1}>{selectedReq.rejectionReason}</Typography>

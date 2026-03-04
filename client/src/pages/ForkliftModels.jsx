@@ -22,7 +22,7 @@ import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import InfoIcon from '@mui/icons-material/Info';
 import StarIcon from '@mui/icons-material/Star';
-import LocalGasStationIcon from '@mui/icons-material/LocalGasStation'; // <-- NEW IMPORT
+import LocalGasStationIcon from '@mui/icons-material/LocalGasStation';
 
 export default function ForkliftModels() {
   const navigate = useNavigate();
@@ -32,6 +32,10 @@ export default function ForkliftModels() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [makeFilter, setMakeFilter] = useState('All');
+  
+  // --- NEW: Main Catalog Pagination State ---
+  const [page, setPage] = useState(1);
+  const MODELS_PER_PAGE = 8; // Shows 2 rows of 4 on desktop, easily scrollable on mobile
   
   const [selectedModel, setSelectedModel] = useState(null);
   const [openModal, setOpenModal] = useState(false);
@@ -63,6 +67,10 @@ export default function ForkliftModels() {
     
     return matchesSearch && matchesStatus && matchesMake;
   });
+
+  // --- NEW: Calculate Pagination for the Catalog ---
+  const pageCount = Math.max(1, Math.ceil(filteredModels.length / MODELS_PER_PAGE));
+  const displayedModels = filteredModels.slice((page - 1) * MODELS_PER_PAGE, page * MODELS_PER_PAGE);
 
   const handleOpenModal = (model) => {
     setSelectedModel(model);
@@ -144,23 +152,24 @@ export default function ForkliftModels() {
                 <Typography variant="subtitle2" color="text.secondary" fontWeight="bold">FILTERS:</Typography>
             </Box>
             
+            {/* THE FIX: Added setPage(1) to all filters so users don't get stuck on an empty page */}
             <TextField 
                 placeholder="Search models..." size="small" variant="outlined"
-                value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+                value={searchTerm} onChange={(e) => {setSearchTerm(e.target.value); setPage(1);}}
                 sx={{ width: { xs: '100%', sm: 250 } }}
                 InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon color="action" /></InputAdornment> }}
             />
 
             <FormControl size="small" sx={{ minWidth: 150 }}>
                 <InputLabel>Manufacturer</InputLabel>
-                <Select value={makeFilter} label="Manufacturer" onChange={(e) => setMakeFilter(e.target.value)}>
+                <Select value={makeFilter} label="Manufacturer" onChange={(e) => {setMakeFilter(e.target.value); setPage(1);}}>
                     {uniqueMakes.map(make => <MenuItem key={make} value={make}>{make}</MenuItem>)}
                 </Select>
             </FormControl>
 
             <FormControl size="small" sx={{ minWidth: 150 }}>
                 <InputLabel>Status</InputLabel>
-                <Select value={statusFilter} label="Status" onChange={(e) => setStatusFilter(e.target.value)}>
+                <Select value={statusFilter} label="Status" onChange={(e) => {setStatusFilter(e.target.value); setPage(1);}}>
                     <MenuItem value="All">All Statuses</MenuItem>
                     <MenuItem value="Available">Available</MenuItem>
                     <MenuItem value="Rented">Rented</MenuItem>
@@ -170,7 +179,8 @@ export default function ForkliftModels() {
         </Box>
 
         <Grid container spacing={4}>
-          {filteredModels.map((model) => {
+          {/* THE FIX: Replaced filteredModels with displayedModels */}
+          {displayedModels.map((model) => {
             const displayImage = getModelImages(model)[0];
             const isAvailable = model.status === 'Available';
 
@@ -211,7 +221,6 @@ export default function ForkliftModels() {
                         </Typography>
                     </Box>
                     
-                    {/* --- THE FIX: APPENDED lbs AND HP TO THE CARDS --- */}
                     <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', gap: 2, mt: 1 }}>
                         <span><strong>Cap:</strong> {model.capacity ? `${model.capacity} lbs` : 'N/A'}</span>
                         <span><strong>Pwr:</strong> {model.power ? `${model.power} HP` : 'N/A'}</span>
@@ -234,10 +243,25 @@ export default function ForkliftModels() {
               <Box sx={{ width: '100%', textAlign: 'center', py: 10 }}>
                   <InfoIcon sx={{ fontSize: 60, color: '#bdbdbd', mb: 2 }} />
                   <Typography variant="h6" color="text.secondary">No vehicles found matching your filters.</Typography>
-                  <Button onClick={() => {setStatusFilter('All'); setMakeFilter('All'); setSearchTerm('');}} sx={{ mt: 2 }}>Clear Filters</Button>
+                  <Button onClick={() => {setStatusFilter('All'); setMakeFilter('All'); setSearchTerm(''); setPage(1);}} sx={{ mt: 2 }}>Clear Filters</Button>
               </Box>
           )}
         </Grid>
+
+        {/* --- NEW: CATALOG PAGINATION CONTROLS --- */}
+        {pageCount > 1 && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 6, pt: 3, borderTop: '1px solid #e0e0e0' }}>
+              <Pagination 
+                count={pageCount} 
+                page={page} 
+                onChange={(e, v) => setPage(v)} 
+                color="primary" 
+                size="large" 
+                shape="rounded" 
+              />
+            </Box>
+        )}
+
       </Box>
 
       {/* MODAL */}
@@ -313,7 +337,6 @@ export default function ForkliftModels() {
                     </Typography>
                 )}
 
-                {/* --- THE FIX: ADDED UNITS AND RENAMED LABELS TO THE MODAL --- */}
                 <List disablePadding sx={{ mt: selectedModel.status === 'Available' ? 3 : 1 }}>
                   <ListItem disableGutters>
                     <ListItemIcon sx={{ minWidth: 40 }}><BuildCircleIcon color="action" /></ListItemIcon>
