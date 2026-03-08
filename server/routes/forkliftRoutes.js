@@ -4,10 +4,9 @@ const Forklift = require('../models/Forklift');
 const RentalRequest = require('../models/RentalRequest'); 
 const { protect, adminOrOwner } = require('../middleware/authMiddleware');
 
-// 1. GET ALL FORKLIFTS 
+// 1. GET ALL FORKLIFTS (Public Route - No 'protect' middleware)
 router.get('/', async (req, res) => {
   try {
-    // THE FIX: Greatly simplified. It now pulls the dates directly from the database!
     const forklifts = await Forklift.find({});
     res.json(forklifts);
   } catch (error) {
@@ -16,7 +15,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// --- NEW: ADD A VERIFIED REVIEW ---
+// --- ADD A VERIFIED REVIEW ---
 router.post('/:id/reviews', protect, async (req, res) => {
   const { rating, comment, images } = req.body;
 
@@ -75,8 +74,7 @@ router.put('/:id', protect, adminOrOwner, async (req, res) => {
     const forklift = await Forklift.findById(req.params.id);
     if (!forklift) return res.status(404).json({ message: 'Forklift not found' });
 
-    // THE FIX: HARD BACKEND SECURITY LOCK
-    // If the forklift is out on a job, block ANY manual status change to Maintenance
+    // HARD BACKEND SECURITY LOCK
     if (forklift.status === 'Rented' && req.body.status && req.body.status !== 'Rented') {
         return res.status(403).json({ message: 'Security Block: Cannot manually change status. Vehicle must be returned via Customer Agreements.' });
     }
@@ -88,7 +86,6 @@ router.put('/:id', protect, adminOrOwner, async (req, res) => {
     forklift.torque = req.body.torque || forklift.torque;
     forklift.fuel = req.body.fuel || forklift.fuel;
     
-    // Only apply the status update if it wasn't blocked above
     if (req.body.status) forklift.status = req.body.status;
     
     forklift.image = req.body.image || forklift.image;

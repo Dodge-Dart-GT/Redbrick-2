@@ -6,7 +6,7 @@ import {
 } from '@mui/material';
 import { styled } from '@mui/system';
 import axios from '../utils/axiosInstance';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import Visibility from '@mui/icons-material/Visibility';
@@ -47,6 +47,7 @@ const LoginPaper = styled(Paper)({
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation(); // --- NEW: Added useLocation
   const recaptchaRef = useRef();
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -108,18 +109,28 @@ export default function LoginPage() {
       : { firstName, lastName, email, phone, address, password, captchaToken };
 
     try {
-      // Cleanest approach: Let the axiosInstance handle the base URL automatically!
       const res = await axios.post(`/api/auth${endpoint}`, payload);
       
       if (isLogin) {
         localStorage.setItem('userInfo', JSON.stringify(res.data));
         handleNotify("Login Successful! Redirecting...", "success");
         
+        // --- NEW: Redirect logic checks for location.state
         setTimeout(() => {
             const role = res.data.role;
-            if (role === 'owner') navigate('/owner-dashboard');      
-            else if (role === 'admin' || role === 'staff') navigate('/admin-dashboard');
-            else navigate('/dashboard'); 
+            const redirectTo = location.state?.redirectTo;
+            const modelData = location.state?.modelData;
+
+            if (redirectTo) {
+                // Send them back to where they came from
+                navigate(redirectTo, { state: modelData });
+            } else if (role === 'owner') {
+                navigate('/owner-dashboard');      
+            } else if (role === 'admin' || role === 'staff') {
+                navigate('/admin-dashboard');
+            } else {
+                navigate('/dashboard'); 
+            }
         }, 1000);
       } else {
         handleNotify("Account created! You can now log in.", "success");

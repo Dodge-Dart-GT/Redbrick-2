@@ -21,7 +21,7 @@ connectDB();
 const app = express();
 
 // 3. Middleware
-// THE FIX: Secure CORS Configuration for Render & Netlify Deployment
+// Secure CORS Configuration for Render & Netlify Deployment
 const allowedOrigins = ['http://localhost:5173', process.env.FRONTEND_URL];
 
 app.use(cors({

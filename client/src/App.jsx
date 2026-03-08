@@ -12,15 +12,15 @@ import ForkliftModels from './pages/ForkliftModels';
 import BookingPage from './pages/BookingPage'; 
 import UserManagement from './pages/UserManagement';
 import ForkliftManagement from './pages/ForkliftManagement'; 
-import AnalyticsDashboard from './pages/AnalyticsDashboard'; // <-- NEW: Analytics Import
+import AnalyticsDashboard from './pages/AnalyticsDashboard'; 
 
 function App() {
   return (
     <Router>
       <div className="App">
         <Routes>
-          {/* Default Route redirects to Login */}
-          <Route path="/" element={<Navigate to="/login" replace />} />
+          {/* THE FIX: Default Route now redirects to the public Catalog instead of Login */}
+          <Route path="/" element={<Navigate to="/models" replace />} />
           
           {/* Authentication */}
           <Route path="/login" element={<LoginPage />} />
@@ -38,10 +38,10 @@ function App() {
           {/* Owner/Admin Management Pages */}
           <Route path="/users" element={<UserManagement />} />
           <Route path="/inventory" element={<ForkliftManagement />} /> 
-          <Route path="/analytics" element={<AnalyticsDashboard />} /> {/* <-- NEW: Analytics Route */}
+          <Route path="/analytics" element={<AnalyticsDashboard />} /> 
           
-          {/* Fallback Route (Catches any typos in the URL and sends them back to login) */}
-          <Route path="*" element={<Navigate to="/login" replace />} />
+          {/* THE FIX: Fallback Route catches typos and sends them to the catalog */}
+          <Route path="*" element={<Navigate to="/models" replace />} />
         </Routes>
       </div>
     </Router>

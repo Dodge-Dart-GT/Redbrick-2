@@ -33,9 +33,9 @@ export default function ForkliftModels() {
   const [statusFilter, setStatusFilter] = useState('All');
   const [makeFilter, setMakeFilter] = useState('All');
   
-  // --- NEW: Main Catalog Pagination State ---
+  // Main Catalog Pagination State
   const [page, setPage] = useState(1);
-  const MODELS_PER_PAGE = 8; // Shows 2 rows of 4 on desktop, easily scrollable on mobile
+  const MODELS_PER_PAGE = 8; 
   
   const [selectedModel, setSelectedModel] = useState(null);
   const [openModal, setOpenModal] = useState(false);
@@ -68,7 +68,6 @@ export default function ForkliftModels() {
     return matchesSearch && matchesStatus && matchesMake;
   });
 
-  // --- NEW: Calculate Pagination for the Catalog ---
   const pageCount = Math.max(1, Math.ceil(filteredModels.length / MODELS_PER_PAGE));
   const displayedModels = filteredModels.slice((page - 1) * MODELS_PER_PAGE, page * MODELS_PER_PAGE);
 
@@ -118,6 +117,22 @@ export default function ForkliftModels() {
     return 'Available Now';
   };
 
+  // --- NEW: Handle Book Click Logic ---
+  const handleBookClick = () => {
+    const userInfo = localStorage.getItem('userInfo');
+    
+    if (!userInfo) {
+      navigate('/login', { 
+        state: { 
+          redirectTo: `/book/${selectedModel._id}`,
+          modelData: { model: selectedModel }
+        } 
+      });
+    } else {
+      navigate(`/book/${selectedModel._id}`, { state: { model: selectedModel } });
+    }
+  };
+
   const activeImagesArray = getModelImages(selectedModel);
   const isBookable = selectedModel ? (selectedModel.status === 'Available' || selectedModel.status === 'Rented') : false;
 
@@ -152,7 +167,6 @@ export default function ForkliftModels() {
                 <Typography variant="subtitle2" color="text.secondary" fontWeight="bold">FILTERS:</Typography>
             </Box>
             
-            {/* THE FIX: Added setPage(1) to all filters so users don't get stuck on an empty page */}
             <TextField 
                 placeholder="Search models..." size="small" variant="outlined"
                 value={searchTerm} onChange={(e) => {setSearchTerm(e.target.value); setPage(1);}}
@@ -179,7 +193,6 @@ export default function ForkliftModels() {
         </Box>
 
         <Grid container spacing={4}>
-          {/* THE FIX: Replaced filteredModels with displayedModels */}
           {displayedModels.map((model) => {
             const displayImage = getModelImages(model)[0];
             const isAvailable = model.status === 'Available';
@@ -248,7 +261,6 @@ export default function ForkliftModels() {
           )}
         </Grid>
 
-        {/* --- NEW: CATALOG PAGINATION CONTROLS --- */}
         {pageCount > 1 && (
             <Box sx={{ display: 'flex', justifyContent: 'center', mt: 6, pt: 3, borderTop: '1px solid #e0e0e0' }}>
               <Pagination 
@@ -356,7 +368,6 @@ export default function ForkliftModels() {
                   </ListItem>
                 </List>
 
-                {/* CUSTOMER REVIEWS SECTION */}
                 <Divider sx={{ my: 4 }} />
                 <Typography variant="h6" fontWeight="900" color="#1a237e" sx={{ mb: 3 }}>
                     VERIFIED CUSTOMER REVIEWS
@@ -433,7 +444,7 @@ export default function ForkliftModels() {
                 disabled={!isBookable} 
                 startIcon={<CalendarMonthIcon />}
                 sx={{ bgcolor: '#1a237e', fontWeight: '800', px: 4, '&:hover': { bgcolor: '#0d1440' } }}
-                onClick={() => navigate(`/book/${selectedModel._id}`, { state: { model: selectedModel } })} 
+                onClick={handleBookClick} 
               >
                 {selectedModel.status === 'Available' ? 'BOOK MODEL' : (selectedModel.status === 'Rented' ? 'RESERVE FUTURE DATE' : 'UNAVAILABLE')}
               </Button>

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   AppBar, Toolbar, Typography, Button, IconButton, Drawer, 
-  List, ListItem, ListItemIcon, ListItemText, Box, Avatar, 
+  List, ListItem, ListItemButton, ListItemIcon, ListItemText, Box, Avatar, // <-- THE FIX: Added ListItemButton
   useTheme, useMediaQuery, Divider 
 } from '@mui/material';
 
@@ -14,14 +14,14 @@ import PeopleIcon from '@mui/icons-material/People';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import LogoutIcon from '@mui/icons-material/Logout';
 import CloseIcon from '@mui/icons-material/Close';
-import AssessmentIcon from '@mui/icons-material/Assessment'; // <-- NEW ICON FOR ANALYTICS
+import AssessmentIcon from '@mui/icons-material/Assessment'; 
+import LoginIcon from '@mui/icons-material/Login';
 
 export default function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
   
-  // Detect if the screen size is smaller than 'md' (900px)
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -34,31 +34,33 @@ export default function Navbar() {
 
   const handleLogout = () => {
     localStorage.removeItem('userInfo');
-    navigate('/login');
+    setUser(null); 
+    navigate('/models');
   };
 
-  // Dynamically generate menu items based on User Role
-  const role = user?.role?.toLowerCase()?.trim() || 'user';
   const menuItems = [];
 
-  if (role === 'owner') {
-    menuItems.push({ text: 'Command Center', path: '/owner-dashboard', icon: <DashboardIcon /> });
-    menuItems.push({ text: 'Fleet Management', path: '/inventory', icon: <LocalShippingIcon /> });
-    menuItems.push({ text: 'User Accounts', path: '/users', icon: <PeopleIcon /> });
-    menuItems.push({ text: 'Analytics', path: '/analytics', icon: <AssessmentIcon /> }); // <-- ADDED FOR OWNER
-  } else if (role === 'admin' || role === 'staff') {
-    menuItems.push({ text: 'Admin Hub', path: '/admin-dashboard', icon: <DashboardIcon /> });
-    menuItems.push({ text: 'Fleet Management', path: '/inventory', icon: <LocalShippingIcon /> });
-    menuItems.push({ text: 'Analytics', path: '/analytics', icon: <AssessmentIcon /> }); // <-- ADDED FOR ADMIN
+  if (user) {
+    const role = user.role?.toLowerCase()?.trim() || 'user';
+    
+    if (role === 'owner') {
+      menuItems.push({ text: 'Command Center', path: '/owner-dashboard', icon: <DashboardIcon /> });
+      menuItems.push({ text: 'Fleet Management', path: '/inventory', icon: <LocalShippingIcon /> });
+      menuItems.push({ text: 'User Accounts', path: '/users', icon: <PeopleIcon /> });
+      menuItems.push({ text: 'Analytics', path: '/analytics', icon: <AssessmentIcon /> }); 
+    } else if (role === 'admin' || role === 'staff') {
+      menuItems.push({ text: 'Admin Hub', path: '/admin-dashboard', icon: <DashboardIcon /> });
+      menuItems.push({ text: 'Fleet Management', path: '/inventory', icon: <LocalShippingIcon /> });
+      menuItems.push({ text: 'Analytics', path: '/analytics', icon: <AssessmentIcon /> }); 
+    } else {
+      menuItems.push({ text: 'My Dashboard', path: '/dashboard', icon: <DashboardIcon /> });
+    }
+    menuItems.push({ text: 'Browse Models', path: '/models', icon: <LocalShippingIcon /> });
+    menuItems.push({ text: 'My Profile', path: '/profile', icon: <AccountCircleIcon /> });
   } else {
-    menuItems.push({ text: 'My Dashboard', path: '/dashboard', icon: <DashboardIcon /> });
     menuItems.push({ text: 'Browse Models', path: '/models', icon: <LocalShippingIcon /> });
   }
   
-  // Profile is available to everyone
-  menuItems.push({ text: 'My Profile', path: '/profile', icon: <AccountCircleIcon /> });
-
-  // Mobile Drawer Content
   const drawerContent = (
     <Box sx={{ width: 280, bgcolor: '#f8f9fa', height: '100%', display: 'flex', flexDirection: 'column' }}>
       <Box sx={{ p: 3, bgcolor: '#1a237e', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -73,33 +75,44 @@ export default function Navbar() {
       
       <List sx={{ pt: 2, flexGrow: 1 }}>
         {menuItems.map((item) => (
-          <ListItem 
-            button 
-            key={item.text} 
-            onClick={() => { navigate(item.path); setDrawerOpen(false); }}
-            sx={{ 
-              mb: 1, mx: 1, borderRadius: 2,
-              bgcolor: location.pathname === item.path ? '#e3f2fd' : 'transparent',
-              color: location.pathname === item.path ? '#1a237e' : 'text.primary',
-              '&:hover': { bgcolor: '#f1f3f5' }
-            }}
-          >
-            <ListItemIcon sx={{ color: location.pathname === item.path ? '#1a237e' : 'action.active' }}>
-              {item.icon}
-            </ListItemIcon>
-            <ListItemText primary={item.text} primaryTypographyProps={{ fontWeight: 'bold' }} />
+          // THE FIX: Removed 'button' prop and wrapped content in ListItemButton
+          <ListItem disablePadding key={item.text} sx={{ mb: 1, mx: 1 }}>
+            <ListItemButton 
+              onClick={() => { navigate(item.path); setDrawerOpen(false); }}
+              sx={{ 
+                borderRadius: 2,
+                bgcolor: location.pathname === item.path ? '#e3f2fd' : 'transparent',
+                color: location.pathname === item.path ? '#1a237e' : 'text.primary',
+                '&:hover': { bgcolor: '#f1f3f5' }
+              }}
+            >
+              <ListItemIcon sx={{ color: location.pathname === item.path ? '#1a237e' : 'action.active' }}>
+                {item.icon}
+              </ListItemIcon>
+              <ListItemText primary={item.text} primaryTypographyProps={{ fontWeight: 'bold' }} />
+            </ListItemButton>
           </ListItem>
         ))}
       </List>
 
       <Divider />
       <Box sx={{ p: 2 }}>
-        <Button 
-          fullWidth variant="outlined" color="error" startIcon={<LogoutIcon />} 
-          onClick={handleLogout} sx={{ fontWeight: 'bold', borderWidth: 2 }}
-        >
-          LOG OUT
-        </Button>
+        {user ? (
+            <Button 
+                fullWidth variant="outlined" color="error" startIcon={<LogoutIcon />} 
+                onClick={handleLogout} sx={{ fontWeight: 'bold', borderWidth: 2 }}
+            >
+                LOG OUT
+            </Button>
+        ) : (
+            <Button 
+                fullWidth variant="contained" startIcon={<LoginIcon />} 
+                onClick={() => { navigate('/login'); setDrawerOpen(false); }} 
+                sx={{ bgcolor: '#1a237e', fontWeight: 'bold' }}
+            >
+                LOG IN / SIGN UP
+            </Button>
+        )}
       </Box>
     </Box>
   );
@@ -109,15 +122,13 @@ export default function Navbar() {
       <AppBar position="sticky" elevation={0} sx={{ bgcolor: '#1a237e', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
         <Toolbar sx={{ justifyContent: 'space-between', px: { xs: 2, md: 4 }, py: 1 }}>
           
-          {/* LOGO SECTION */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, cursor: 'pointer' }} onClick={() => navigate(menuItems[0]?.path || '/')}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, cursor: 'pointer' }} onClick={() => navigate('/models')}>
             <Avatar src="/RedBrickLogo.png" sx={{ width: 45, height: 45, bgcolor: 'white', p: 0.5 }} />
             <Typography variant="h5" fontWeight="900" sx={{ letterSpacing: 1, display: { xs: 'none', sm: 'block' } }}>
               RED BRICK
             </Typography>
           </Box>
 
-          {/* DESKTOP NAVIGATION */}
           {!isMobile ? (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               {menuItems.map((item) => (
@@ -135,20 +146,35 @@ export default function Navbar() {
                 </Button>
               ))}
               <Box sx={{ ml: 2, pl: 2, borderLeft: '1px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                  Hello, <strong>{user?.firstName || 'User'}</strong>
-                </Typography>
-                <IconButton onClick={handleLogout} sx={{ color: '#ffcdd2', '&:hover': { bgcolor: 'rgba(211, 47, 47, 0.2)' } }}>
-                  <LogoutIcon />
-                </IconButton>
+                
+                {user ? (
+                    <>
+                        <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                        Hello, <strong>{user.firstName || 'User'}</strong>
+                        </Typography>
+                        <IconButton onClick={handleLogout} sx={{ color: '#ffcdd2', '&:hover': { bgcolor: 'rgba(211, 47, 47, 0.2)' } }}>
+                        <LogoutIcon />
+                        </IconButton>
+                    </>
+                ) : (
+                    <Button 
+                        variant="outlined" 
+                        onClick={() => navigate('/login')} 
+                        sx={{ color: 'white', borderColor: 'rgba(255,255,255,0.5)', fontWeight: 'bold', '&:hover': { borderColor: 'white', bgcolor: 'rgba(255,255,255,0.1)' } }}
+                    >
+                        Log In
+                    </Button>
+                )}
+
               </Box>
             </Box>
           ) : (
-            /* MOBILE VIEW: GREETING & HAMBURGER BUTTON */
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-              <Typography variant="body2" sx={{ color: 'white', opacity: 0.9 }}>
-                Hello, <strong>{user?.firstName || 'User'}</strong>
-              </Typography>
+              {user && (
+                  <Typography variant="body2" sx={{ color: 'white', opacity: 0.9 }}>
+                    Hello, <strong>{user.firstName || 'User'}</strong>
+                  </Typography>
+              )}
               <IconButton edge="end" color="inherit" onClick={() => setDrawerOpen(true)} sx={{ p: 0.5 }}>
                 <MenuIcon fontSize="large" />
               </IconButton>
@@ -157,7 +183,6 @@ export default function Navbar() {
         </Toolbar>
       </AppBar>
 
-      {/* MOBILE DRAWER MENU */}
       <Drawer anchor="right" open={drawerOpen} onClose={() => setDrawerOpen(false)} PaperProps={{ sx: { borderTopLeftRadius: 16, borderBottomLeftRadius: 16 } }}>
         {drawerContent}
       </Drawer>
