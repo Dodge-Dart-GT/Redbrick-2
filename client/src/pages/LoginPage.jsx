@@ -24,38 +24,38 @@ const BackgroundBox = styled(Box)({
   position: 'relative'
 });
 
-const Overlay = styled(Box)({
+// THE FIX: Overlay now darkens slightly more in dark mode
+const Overlay = styled(Box)(({ theme }) => ({
   position: 'absolute',
   top: 0,
   left: 0,
   width: '100%',
   height: '100%',
-  backgroundColor: 'rgba(0, 0, 0, 0.65)',
-});
+  backgroundColor: theme.palette.mode === 'dark' ? 'rgba(0, 0, 0, 0.85)' : 'rgba(0, 0, 0, 0.65)',
+}));
 
-const LoginPaper = styled(Paper)({
+// THE FIX: LoginPaper now uses the theme's background.paper instead of hardcoded white
+const LoginPaper = styled(Paper)(({ theme }) => ({
   padding: '40px',
   width: '100%',
   maxWidth: '480px',
   zIndex: 2,
-  backgroundColor: 'rgba(255, 255, 255, 0.98)',
+  backgroundColor: theme.palette.background.paper, 
   borderRadius: '16px',
   maxHeight: '92vh',
   overflowY: 'auto',
   boxShadow: '0 20px 40px rgba(0,0,0,0.4)'
-});
+}));
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const location = useLocation(); // --- NEW: Added useLocation
+  const location = useLocation(); 
   const recaptchaRef = useRef();
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   
-  // Notification State
   const [notification, setNotification] = useState({ open: false, message: '', severity: 'info' });
 
-  // Form State
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState(''); 
@@ -115,14 +115,12 @@ export default function LoginPage() {
         localStorage.setItem('userInfo', JSON.stringify(res.data));
         handleNotify("Login Successful! Redirecting...", "success");
         
-        // --- NEW: Redirect logic checks for location.state
         setTimeout(() => {
             const role = res.data.role;
             const redirectTo = location.state?.redirectTo;
             const modelData = location.state?.modelData;
 
             if (redirectTo) {
-                // Send them back to where they came from
                 navigate(redirectTo, { state: modelData });
             } else if (role === 'owner') {
                 navigate('/owner-dashboard');      
@@ -176,7 +174,8 @@ export default function LoginPage() {
               mb: 2, 
               boxShadow: '0 8px 20px rgba(0,0,0,0.15)',
               backgroundColor: 'white',
-              border: '2px solid #eee',
+              border: '2px solid',
+              borderColor: 'divider',
               '& img': { objectFit: 'contain', p: 1 } 
             }} 
           />
@@ -185,7 +184,8 @@ export default function LoginPage() {
           </Typography>
         </Box>
 
-        <Typography variant="h5" fontWeight="900" sx={{ mb: 1, color: '#1a237e' }}>
+        {/* THE FIX: Changed from hardcoded color to primary.main */}
+        <Typography variant="h5" fontWeight="900" sx={{ mb: 1, color: 'primary.main' }}>
           {isLogin ? 'Welcome Back' : 'Create an Account'}
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
@@ -230,7 +230,8 @@ export default function LoginPage() {
           {!isLogin && (
             <>
               <TextField fullWidth label="Confirm Password" margin="dense" type="password" required size="small" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} error={confirmPassword.length > 0 && !doPasswordsMatch} />
-              <Box sx={{ mt: 2, p: 1.5, bgcolor: '#f8f9fa', borderRadius: 2, border: '1px solid #eee' }}>
+              {/* THE FIX: background color uses background.default */}
+              <Box sx={{ mt: 2, p: 1.5, bgcolor: 'background.default', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
                 <Typography variant="caption" fontWeight="bold" color="primary">Password Requirements:</Typography>
                 <List dense sx={{ mt: 0.5 }}>
                   <ValidationItem valid={validations.hasLength} text="Minimum 8 characters" />
@@ -252,10 +253,11 @@ export default function LoginPage() {
             />
           </Box>
 
+          {/* THE FIX: Uses primary.main for background color */}
           <Button 
             type="submit" fullWidth variant="contained" size="large"
             disabled={loading || !captchaToken || (!isLogin && (!isPasswordValid || !doPasswordsMatch))}
-            sx={{ mt: 4, mb: 2, py: 1.5, fontWeight: 'bold', backgroundColor: '#1a237e', borderRadius: '8px', boxShadow: '0 4px 12px rgba(26, 35, 126, 0.3)' }}
+            sx={{ mt: 4, mb: 2, py: 1.5, fontWeight: 'bold', bgcolor: 'primary.main', color: 'white', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)' }}
           >
             {loading ? <CircularProgress size={24} color="inherit" /> : (isLogin ? 'SIGN IN' : 'CREATE ACCOUNT')}
           </Button>
@@ -281,4 +283,4 @@ export default function LoginPage() {
       </Snackbar>
     </BackgroundBox>
   );
-}
+} 

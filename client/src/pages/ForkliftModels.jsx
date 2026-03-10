@@ -6,9 +6,8 @@ import {
   CardContent, Chip, InputAdornment, List, ListItem, 
   ListItemIcon, ListItemText, Dialog, DialogTitle, DialogContent, 
   DialogActions, IconButton, Stack, MenuItem, Select, FormControl, InputLabel,
-  Rating, Avatar, Divider, Pagination
+  Rating, Avatar, Divider, Pagination, Container, Paper
 } from '@mui/material';
-import Navbar from '../components/Navbar';
 
 // Icons
 import SearchIcon from '@mui/icons-material/Search';
@@ -27,21 +26,14 @@ import LocalGasStationIcon from '@mui/icons-material/LocalGasStation';
 export default function ForkliftModels() {
   const navigate = useNavigate();
   const [models, setModels] = useState([]);
-  
-  // Filter States
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [makeFilter, setMakeFilter] = useState('All');
-  
-  // Main Catalog Pagination State
   const [page, setPage] = useState(1);
   const MODELS_PER_PAGE = 8; 
-  
   const [selectedModel, setSelectedModel] = useState(null);
   const [openModal, setOpenModal] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0); 
-  
-  // Review Pagination State
   const [reviewPage, setReviewPage] = useState(1);
   const REVIEWS_PER_PAGE = 5;
 
@@ -64,7 +56,6 @@ export default function ForkliftModels() {
                           (m.model || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'All' || m.status === statusFilter;
     const matchesMake = makeFilter === 'All' || m.make === makeFilter;
-    
     return matchesSearch && matchesStatus && matchesMake;
   });
 
@@ -83,27 +74,24 @@ export default function ForkliftModels() {
     setTimeout(() => setSelectedModel(null), 300);
   };
 
-  const handleNext = () => {
-    const currentIndex = filteredModels.findIndex(m => m._id === selectedModel._id);
-    const nextIndex = (currentIndex + 1) % filteredModels.length; 
-    setSelectedModel(filteredModels[nextIndex]);
-    setActiveImageIndex(0); 
-    setReviewPage(1);
-  };
-
-  const handlePrev = () => {
-    const currentIndex = filteredModels.findIndex(m => m._id === selectedModel._id);
-    const prevIndex = (currentIndex - 1 + filteredModels.length) % filteredModels.length; 
-    setSelectedModel(filteredModels[prevIndex]);
-    setActiveImageIndex(0); 
-    setReviewPage(1); 
-  };
-
   const getModelImages = (model) => {
     if (!model) return [];
     if (model.images && model.images.length > 0) return model.images;
     if (model.image) return [model.image];
     return ['https://placehold.co/600x400?text=No+Vehicle+Image']; 
+  };
+
+  // --- THE FIX: Correct Image Carousel Handlers ---
+  const activeImagesArray = getModelImages(selectedModel);
+
+  const handleNextImage = () => {
+    if (activeImagesArray.length <= 1) return;
+    setActiveImageIndex((prevIndex) => (prevIndex + 1) % activeImagesArray.length);
+  };
+
+  const handlePrevImage = () => {
+    if (activeImagesArray.length <= 1) return;
+    setActiveImageIndex((prevIndex) => (prevIndex - 1 + activeImagesArray.length) % activeImagesArray.length);
   };
 
   const renderAvailabilityText = (model) => {
@@ -117,42 +105,33 @@ export default function ForkliftModels() {
     return 'Available Now';
   };
 
-  // --- NEW: Handle Book Click Logic ---
   const handleBookClick = () => {
     const userInfo = localStorage.getItem('userInfo');
-    
     if (!userInfo) {
       navigate('/login', { 
-        state: { 
-          redirectTo: `/book/${selectedModel._id}`,
-          modelData: { model: selectedModel }
-        } 
+        state: { redirectTo: `/book/${selectedModel._id}`, modelData: { model: selectedModel } } 
       });
     } else {
       navigate(`/book/${selectedModel._id}`, { state: { model: selectedModel } });
     }
   };
 
-  const activeImagesArray = getModelImages(selectedModel);
   const isBookable = selectedModel ? (selectedModel.status === 'Available' || selectedModel.status === 'Rented') : false;
-
   const reviewCount = selectedModel?.reviews?.length || 0;
   const reviewPageCount = Math.max(1, Math.ceil(reviewCount / REVIEWS_PER_PAGE));
   const displayedReviews = selectedModel?.reviews 
-    ? [...selectedModel.reviews]
-        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)) 
+    ? [...selectedModel.reviews].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)) 
         .slice((reviewPage - 1) * REVIEWS_PER_PAGE, reviewPage * REVIEWS_PER_PAGE)
     : [];
 
   return (
-    <Box sx={{ minHeight: '100vh', backgroundColor: '#f4f6f8', pb: 8 }}>
-      <Navbar />
+    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', pb: 8 }}>
       
-      <Box sx={{ p: { xs: 2, md: 5 }, maxWidth: 1400, mx: 'auto' }}>
+      <Container maxWidth="xl" sx={{ pt: { xs: 2, md: 5 } }}>
         
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', mb: 3, flexWrap: 'wrap', gap: 2 }}>
           <Box>
-            <Typography variant="h4" fontWeight="900" sx={{ color: '#1a237e', letterSpacing: '-0.5px' }}>
+            <Typography variant="h4" fontWeight="900" sx={{ color: 'primary.main', letterSpacing: '-0.5px' }}>
               OUR FLEET
             </Typography>
             <Typography variant="body1" color="text.secondary">
@@ -161,35 +140,41 @@ export default function ForkliftModels() {
           </Box>
         </Box>
 
-        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 5, p: 2, bgcolor: 'white', borderRadius: 3, border: '1px solid #e0e0e0', alignItems: 'center' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, pr: 2, borderRight: { md: '1px solid #eee' } }}>
+        <Box sx={{ 
+          display: 'flex', gap: 2, flexWrap: 'wrap', mb: 5, p: 2, 
+          bgcolor: 'background.paper', 
+          borderRadius: 3, border: '1px solid', borderColor: 'divider', alignItems: 'center' 
+        }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, pr: 2, borderRight: { md: '1px solid', borderColor: 'divider' } }}>
                 <FilterListIcon color="action" />
                 <Typography variant="subtitle2" color="text.secondary" fontWeight="bold">FILTERS:</Typography>
             </Box>
             
-            <TextField 
-                placeholder="Search models..." size="small" variant="outlined"
-                value={searchTerm} onChange={(e) => {setSearchTerm(e.target.value); setPage(1);}}
-                sx={{ width: { xs: '100%', sm: 250 } }}
-                InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon color="action" /></InputAdornment> }}
-            />
+            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', flexGrow: 1 }}>
+                <TextField 
+                    placeholder="Search models..." size="small" variant="outlined"
+                    value={searchTerm} onChange={(e) => {setSearchTerm(e.target.value); setPage(1);}}
+                    sx={{ width: { xs: '100%', sm: 250 } }}
+                    InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon color="action" /></InputAdornment> }}
+                />
 
-            <FormControl size="small" sx={{ minWidth: 150 }}>
-                <InputLabel>Manufacturer</InputLabel>
-                <Select value={makeFilter} label="Manufacturer" onChange={(e) => {setMakeFilter(e.target.value); setPage(1);}}>
-                    {uniqueMakes.map(make => <MenuItem key={make} value={make}>{make}</MenuItem>)}
-                </Select>
-            </FormControl>
+                <FormControl size="small" sx={{ minWidth: 150 }}>
+                    <InputLabel>Manufacturer</InputLabel>
+                    <Select value={makeFilter} label="Manufacturer" onChange={(e) => {setMakeFilter(e.target.value); setPage(1);}}>
+                        {uniqueMakes.map(make => <MenuItem key={make} value={make}>{make}</MenuItem>)}
+                    </Select>
+                </FormControl>
 
-            <FormControl size="small" sx={{ minWidth: 150 }}>
-                <InputLabel>Status</InputLabel>
-                <Select value={statusFilter} label="Status" onChange={(e) => {setStatusFilter(e.target.value); setPage(1);}}>
-                    <MenuItem value="All">All Statuses</MenuItem>
-                    <MenuItem value="Available">Available</MenuItem>
-                    <MenuItem value="Rented">Rented</MenuItem>
-                    <MenuItem value="Maintenance">Maintenance</MenuItem>
-                </Select>
-            </FormControl>
+                <FormControl size="small" sx={{ minWidth: 150 }}>
+                    <InputLabel>Status</InputLabel>
+                    <Select value={statusFilter} label="Status" onChange={(e) => {setStatusFilter(e.target.value); setPage(1);}}>
+                        <MenuItem value="All">All Statuses</MenuItem>
+                        <MenuItem value="Available">Available</MenuItem>
+                        <MenuItem value="Rented">Rented</MenuItem>
+                        <MenuItem value="Maintenance">Maintenance</MenuItem>
+                    </Select>
+                </FormControl>
+            </Box>
         </Box>
 
         <Grid container spacing={4}>
@@ -203,10 +188,11 @@ export default function ForkliftModels() {
                   elevation={0}
                   onClick={() => handleOpenModal(model)}
                   sx={{ 
-                    borderRadius: 3, border: '1px solid #e0e0e0', position: 'relative',
+                    borderRadius: 3, border: '1px solid', borderColor: 'divider', position: 'relative',
+                    bgcolor: 'background.paper',
                     transition: 'transform 0.2s, box-shadow 0.2s',
                     cursor: 'pointer', height: '100%', display: 'flex', flexDirection: 'column',
-                    '&:hover': { transform: 'translateY(-6px)', boxShadow: '0 12px 24px rgba(0,0,0,0.1)', borderColor: '#1a237e' }
+                    '&:hover': { transform: 'translateY(-6px)', boxShadow: 6, borderColor: 'primary.main' }
                   }}
                 >
                   <CardMedia
@@ -224,8 +210,13 @@ export default function ForkliftModels() {
                       </Box>
                   )}
 
+                  {/* Show indicator if model has multiple images */}
+                  {getModelImages(model).length > 1 && (
+                      <Chip size="small" label={`+${getModelImages(model).length - 1} Photos`} sx={{ position: 'absolute', top: 12, right: 12, height: 20, fontSize: '0.65rem', fontWeight: 'bold', bgcolor: 'rgba(255,255,255,0.9)', color: 'text.primary', backdropFilter: 'blur(4px)' }} />
+                  )}
+
                   <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                    <Typography variant="h6" fontWeight="900" sx={{ lineHeight: 1.2 }}>{model.make} {model.model}</Typography>
+                    <Typography variant="h6" fontWeight="900" sx={{ lineHeight: 1.2, color: 'text.primary' }}>{model.make} {model.model}</Typography>
                     
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                         <Rating value={model.rating || 0} readOnly size="small" precision={0.5} emptyIcon={<StarIcon style={{ opacity: 0.55 }} fontSize="inherit" />} />
@@ -239,13 +230,13 @@ export default function ForkliftModels() {
                         <span><strong>Pwr:</strong> {model.power ? `${model.power} HP` : 'N/A'}</span>
                     </Typography>
 
-                    <Box sx={{ mt: 'auto', pt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f3f5' }}>
+                    <Box sx={{ mt: 'auto', pt: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid', borderColor: 'divider' }}>
                       <Chip 
                         label={model.status || 'Available'} size="small" 
                         color={isAvailable ? 'success' : model.status === 'Rented' ? 'warning' : 'error'} 
                         sx={{ fontWeight: 'bold', borderRadius: 1 }} 
                       />
-                      <Typography variant="button" sx={{ color: '#1a237e', fontWeight: 'bold' }}>DETAILS</Typography>
+                      <Typography variant="button" sx={{ color: 'primary.main', fontWeight: 'bold' }}>DETAILS</Typography>
                     </Box>
                   </CardContent>
                 </Card>
@@ -254,7 +245,7 @@ export default function ForkliftModels() {
           })}
           {filteredModels.length === 0 && (
               <Box sx={{ width: '100%', textAlign: 'center', py: 10 }}>
-                  <InfoIcon sx={{ fontSize: 60, color: '#bdbdbd', mb: 2 }} />
+                  <InfoIcon sx={{ fontSize: 60, color: 'text.disabled', mb: 2 }} />
                   <Typography variant="h6" color="text.secondary">No vehicles found matching your filters.</Typography>
                   <Button onClick={() => {setStatusFilter('All'); setMakeFilter('All'); setSearchTerm(''); setPage(1);}} sx={{ mt: 2 }}>Clear Filters</Button>
               </Box>
@@ -262,77 +253,55 @@ export default function ForkliftModels() {
         </Grid>
 
         {pageCount > 1 && (
-            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 6, pt: 3, borderTop: '1px solid #e0e0e0' }}>
-              <Pagination 
-                count={pageCount} 
-                page={page} 
-                onChange={(e, v) => setPage(v)} 
-                color="primary" 
-                size="large" 
-                shape="rounded" 
-              />
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 6, pt: 3, borderTop: '1px solid', borderColor: 'divider' }}>
+              <Pagination count={pageCount} page={page} onChange={(e, v) => setPage(v)} color="primary" size="large" shape="rounded" />
             </Box>
         )}
 
-      </Box>
+      </Container>
 
       {/* MODAL */}
-      <Dialog open={openModal} onClose={handleCloseModal} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
+      <Dialog open={openModal} onClose={handleCloseModal} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3, bgcolor: 'background.paper' } }}>
         {selectedModel && (
           <>
-            <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: '#1a237e', color: 'white' }}>
+            <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: 'primary.main', color: 'white' }}>
               <Typography variant="h6" component="span" fontWeight="bold">VEHICLE SPECIFICATIONS</Typography>
               <IconButton onClick={handleCloseModal} sx={{ color: 'white' }}><CloseIcon /></IconButton>
             </DialogTitle>
             
-            <DialogContent dividers sx={{ p: 0 }}>
-              <Box sx={{ position: 'relative', bgcolor: '#f1f3f5', display: 'flex', flexDirection: 'column', alignItems: 'center', borderBottom: '1px solid #e0e0e0' }}>
+            <DialogContent dividers sx={{ p: 0, borderColor: 'divider' }}>
+              
+              {/* THE FIX: Carousel Section */}
+              <Box sx={{ position: 'relative', bgcolor: 'background.default', display: 'flex', flexDirection: 'column', alignItems: 'center', borderBottom: '1px solid', borderColor: 'divider' }}>
                 
-                <IconButton 
-                  onClick={handlePrev} 
-                  sx={{ position: 'absolute', left: 8, top: 130, zIndex: 2, bgcolor: 'rgba(255,255,255,0.7)', '&:hover': { bgcolor: 'white' } }}
-                >
-                  <ArrowBackIosNewIcon />
-                </IconButton>
-
-                <img 
-                  src={activeImagesArray[activeImageIndex]} 
-                  alt={selectedModel.model} 
-                  style={{ width: '100%', height: '300px', objectFit: 'cover', transition: 'opacity 0.3s ease-in-out' }} 
-                />
-
-                <IconButton 
-                  onClick={handleNext} 
-                  sx={{ position: 'absolute', right: 8, top: 130, zIndex: 2, bgcolor: 'rgba(255,255,255,0.7)', '&:hover': { bgcolor: 'white' } }}
-                >
-                  <ArrowForwardIosIcon />
-                </IconButton>
-
                 {activeImagesArray.length > 1 && (
-                  <Stack direction="row" spacing={1} sx={{ p: 1.5, width: '100%', overflowX: 'auto', bgcolor: '#e0e0e0' }}>
-                    {activeImagesArray.map((imgUrl, index) => (
-                      <Box 
-                        key={index} 
-                        onClick={() => setActiveImageIndex(index)}
-                        sx={{ 
-                          width: 60, height: 45, flexShrink: 0, cursor: 'pointer',
-                          borderRadius: 1, overflow: 'hidden', 
-                          border: activeImageIndex === index ? '3px solid #1a237e' : '2px solid transparent',
-                          opacity: activeImageIndex === index ? 1 : 0.6,
-                          '&:hover': { opacity: 1 }
-                        }}
-                      >
-                        <img src={imgUrl} alt="thumb" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      </Box>
+                  <IconButton onClick={handlePrevImage} sx={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', zIndex: 2, bgcolor: 'background.paper', '&:hover': { bgcolor: 'action.hover' } }}>
+                    <ArrowBackIosNewIcon />
+                  </IconButton>
+                )}
+                
+                <img src={activeImagesArray[activeImageIndex]} alt={selectedModel.model} style={{ width: '100%', height: '300px', objectFit: 'cover' }} />
+                
+                {activeImagesArray.length > 1 && (
+                  <IconButton onClick={handleNextImage} sx={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', zIndex: 2, bgcolor: 'background.paper', '&:hover': { bgcolor: 'action.hover' } }}>
+                    <ArrowForwardIosIcon />
+                  </IconButton>
+                )}
+
+                {/* THE FIX: Image Indicators (Dots) */}
+                {activeImagesArray.length > 1 && (
+                  <Box sx={{ position: 'absolute', bottom: 12, display: 'flex', gap: 1, bgcolor: 'rgba(0,0,0,0.4)', px: 1.5, py: 0.5, borderRadius: 4 }}>
+                    {activeImagesArray.map((_, index) => (
+                      <Box key={index} sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: activeImageIndex === index ? 'white' : 'rgba(255,255,255,0.4)', transition: 'background-color 0.2s' }} />
                     ))}
-                  </Stack>
+                  </Box>
                 )}
               </Box>
 
               <Box sx={{ p: 4 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
                   <Box>
-                    <Typography variant="h4" fontWeight="900" color="#1a237e">{selectedModel.make} {selectedModel.model}</Typography>
+                    <Typography variant="h4" fontWeight="900" color="primary.main">{selectedModel.make} {selectedModel.model}</Typography>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
                         <Rating value={selectedModel.rating || 0} readOnly size="small" precision={0.5} />
                         <Typography variant="body2" color="text.secondary" fontWeight="bold">
@@ -343,110 +312,40 @@ export default function ForkliftModels() {
                   <Chip label={selectedModel.status || 'Available'} color={selectedModel.status === 'Available' ? 'success' : selectedModel.status === 'Rented' ? 'warning' : 'error'} sx={{ fontWeight: 'bold', borderRadius: 1 }} />
                 </Box>
                 
-                {selectedModel.status !== 'Available' && (
-                    <Typography variant="subtitle2" color="error.main" fontWeight="bold" sx={{ mt: 2, mb: 1 }}>
-                       Notice: {renderAvailabilityText(selectedModel)}
-                    </Typography>
-                )}
-
-                <List disablePadding sx={{ mt: selectedModel.status === 'Available' ? 3 : 1 }}>
-                  <ListItem disableGutters>
-                    <ListItemIcon sx={{ minWidth: 40 }}><BuildCircleIcon color="action" /></ListItemIcon>
-                    <ListItemText primary="Make & Model" secondary={`${selectedModel.make} ${selectedModel.model}`} />
-                  </ListItem>
-                  <ListItem disableGutters>
-                    <ListItemIcon sx={{ minWidth: 40 }}><FitnessCenterIcon color="action" /></ListItemIcon>
-                    <ListItemText primary="Lift Capacity" secondary={selectedModel.capacity ? `${selectedModel.capacity} lbs` : 'Standard / Unspecified'} />
-                  </ListItem>
-                  <ListItem disableGutters>
-                    <ListItemIcon sx={{ minWidth: 40 }}><EvStationIcon color="action" /></ListItemIcon>
-                    <ListItemText primary="Horsepower" secondary={selectedModel.power ? `${selectedModel.power} HP` : 'N/A'} />
-                  </ListItem>
-                  <ListItem disableGutters>
-                    <ListItemIcon sx={{ minWidth: 40 }}><LocalGasStationIcon color="action" /></ListItemIcon>
-                    <ListItemText primary="Fuel Type" secondary={selectedModel.fuel || 'N/A'} />
-                  </ListItem>
+                <List disablePadding sx={{ mt: 3 }}>
+                  <ListItem disableGutters><ListItemIcon><BuildCircleIcon color="action" /></ListItemIcon><ListItemText primary="Make & Model" secondary={`${selectedModel.make} ${selectedModel.model}`} /></ListItem>
+                  <ListItem disableGutters><ListItemIcon><FitnessCenterIcon color="action" /></ListItemIcon><ListItemText primary="Lift Capacity" secondary={selectedModel.capacity ? `${selectedModel.capacity} lbs` : 'Standard'} /></ListItem>
+                  <ListItem disableGutters><ListItemIcon><EvStationIcon color="action" /></ListItemIcon><ListItemText primary="Horsepower" secondary={selectedModel.power ? `${selectedModel.power} HP` : 'N/A'} /></ListItem>
                 </List>
 
                 <Divider sx={{ my: 4 }} />
-                <Typography variant="h6" fontWeight="900" color="#1a237e" sx={{ mb: 3 }}>
-                    VERIFIED CUSTOMER REVIEWS
-                </Typography>
-
-                {reviewCount > 0 ? (
-                    <>
-                        <Stack spacing={3}>
-                            {displayedReviews.map((review, idx) => (
-                                <Box key={idx} sx={{ p: 3, bgcolor: '#f8f9fa', borderRadius: 3, border: '1px solid #e0e0e0' }}>
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1.5 }}>
-                                        <Avatar sx={{ width: 40, height: 40, bgcolor: '#1a237e', fontWeight: 'bold' }}>
-                                            {review.name.charAt(0)}
-                                        </Avatar>
-                                        <Box>
-                                            <Typography variant="subtitle1" fontWeight="bold" sx={{ lineHeight: 1.2 }}>{review.name}</Typography>
-                                            <Rating value={review.rating} readOnly size="small" sx={{ mt: 0.5 }} />
-                                        </Box>
-                                        <Typography variant="caption" color="text.secondary" sx={{ ml: 'auto', alignSelf: 'flex-start' }}>
-                                            {new Date(review.createdAt).toLocaleDateString()}
-                                        </Typography>
-                                    </Box>
-                                    
-                                    <Typography variant="body1" color="text.primary" sx={{ mt: 1 }}>
-                                        "{review.comment}"
-                                    </Typography>
-
-                                    {review.images && review.images.length > 0 && (
-                                        <Box sx={{ display: 'flex', gap: 1.5, mt: 2 }}>
-                                            {review.images.map((img, imgIdx) => (
-                                                <Avatar 
-                                                  key={imgIdx} 
-                                                  src={img} 
-                                                  variant="rounded" 
-                                                  sx={{ width: 80, height: 80, border: '1px solid #ccc', cursor: 'pointer' }} 
-                                                  onClick={() => window.open(img, '_blank')}
-                                                />
-                                            ))}
-                                        </Box>
-                                    )}
-                                </Box>
-                            ))}
-                        </Stack>
-                        
-                        {reviewPageCount > 1 && (
-                            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4, pt: 2 }}>
-                                <Pagination 
-                                    count={reviewPageCount} 
-                                    page={reviewPage} 
-                                    onChange={(e, value) => setReviewPage(value)} 
-                                    color="primary" 
-                                />
-                            </Box>
-                        )}
-                    </>
+                <Typography variant="h6" fontWeight="900" color="primary.main" sx={{ mb: 3 }}>VERIFIED CUSTOMER REVIEWS</Typography>
+                
+                {displayedReviews.length > 0 ? (
+                  <Stack spacing={2}>
+                    {displayedReviews.map((review, i) => (
+                      <Paper key={i} elevation={0} sx={{ p: 2, bgcolor: 'background.default', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                           <Typography variant="subtitle2" fontWeight="bold">{review.name || 'Anonymous'}</Typography>
+                           <Rating value={review.rating} readOnly size="small" />
+                        </Box>
+                        <Typography variant="body2">{review.comment}</Typography>
+                      </Paper>
+                    ))}
+                    {reviewPageCount > 1 && (
+                      <Pagination count={reviewPageCount} page={reviewPage} onChange={(e, v) => setReviewPage(v)} size="small" sx={{ alignSelf: 'center' }} />
+                    )}
+                  </Stack>
                 ) : (
-                    <Box sx={{ p: 3, textAlign: 'center', bgcolor: '#f1f3f5', borderRadius: 3 }}>
-                        <Typography variant="body1" color="text.secondary" fontWeight="bold">
-                            No reviews yet for this model.
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary" mt={0.5}>
-                            Book it today and be the first to leave feedback!
-                        </Typography>
-                    </Box>
+                  <Typography variant="body2" color="text.secondary">No reviews for this model yet.</Typography>
                 )}
-
               </Box>
             </DialogContent>
 
-            <DialogActions sx={{ p: 3, bgcolor: '#f8f9fa', borderTop: '1px solid #e0e0e0' }}>
+            <DialogActions sx={{ p: 3, bgcolor: 'background.default', borderTop: '1px solid', borderColor: 'divider' }}>
               <Button onClick={handleCloseModal} sx={{ fontWeight: 'bold', color: 'text.secondary', mr: 2 }}>CANCEL</Button>
-              <Button 
-                variant="contained" size="large" 
-                disabled={!isBookable} 
-                startIcon={<CalendarMonthIcon />}
-                sx={{ bgcolor: '#1a237e', fontWeight: '800', px: 4, '&:hover': { bgcolor: '#0d1440' } }}
-                onClick={handleBookClick} 
-              >
-                {selectedModel.status === 'Available' ? 'BOOK MODEL' : (selectedModel.status === 'Rented' ? 'RESERVE FUTURE DATE' : 'UNAVAILABLE')}
+              <Button variant="contained" size="large" disabled={!isBookable} startIcon={<CalendarMonthIcon />} sx={{ bgcolor: 'primary.main', fontWeight: '800', px: 4 }} onClick={handleBookClick}>
+                BOOK MODEL
               </Button>
             </DialogActions>
           </>

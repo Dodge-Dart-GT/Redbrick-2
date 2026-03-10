@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   AppBar, Toolbar, Typography, Button, IconButton, Drawer, 
-  List, ListItem, ListItemButton, ListItemIcon, ListItemText, Box, Avatar, // <-- THE FIX: Added ListItemButton
+  List, ListItem, ListItemButton, ListItemIcon, ListItemText, Box, Avatar, 
   useTheme, useMediaQuery, Divider 
 } from '@mui/material';
 
@@ -16,8 +16,10 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import CloseIcon from '@mui/icons-material/Close';
 import AssessmentIcon from '@mui/icons-material/Assessment'; 
 import LoginIcon from '@mui/icons-material/Login';
+import Brightness4Icon from '@mui/icons-material/Brightness4'; // Moon
+import Brightness7Icon from '@mui/icons-material/Brightness7'; // Sun
 
-export default function Navbar() {
+export default function Navbar({ currentMode, toggleMode }) {
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
@@ -27,10 +29,15 @@ export default function Navbar() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [user, setUser] = useState(null);
 
+  // THE FIX: This now checks your login status every time you navigate to a new page!
   useEffect(() => {
     const userInfo = localStorage.getItem('userInfo');
-    if (userInfo) setUser(JSON.parse(userInfo));
-  }, []);
+    if (userInfo) {
+        setUser(JSON.parse(userInfo));
+    } else {
+        setUser(null);
+    }
+  }, [location.pathname]); 
 
   const handleLogout = () => {
     localStorage.removeItem('userInfo');
@@ -62,8 +69,8 @@ export default function Navbar() {
   }
   
   const drawerContent = (
-    <Box sx={{ width: 280, bgcolor: '#f8f9fa', height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <Box sx={{ p: 3, bgcolor: '#1a237e', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <Box sx={{ width: 280, bgcolor: currentMode === 'dark' ? '#121212' : '#f8f9fa', height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <Box sx={{ p: 3, bgcolor: currentMode === 'dark' ? '#1e1e1e' : '#1a237e', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <Avatar src="/RedBrickLogo.png" sx={{ width: 40, height: 40, bgcolor: 'white', p: 0.5 }} />
           <Typography variant="h6" fontWeight="900">RED BRICK</Typography>
@@ -74,19 +81,27 @@ export default function Navbar() {
       </Box>
       
       <List sx={{ pt: 2, flexGrow: 1 }}>
+        <ListItem disablePadding sx={{ mb: 1, mx: 1 }}>
+            <ListItemButton onClick={toggleMode}>
+                <ListItemIcon sx={{ color: currentMode === 'dark' ? '#ffca28' : '#1a237e' }}>
+                    {currentMode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
+                </ListItemIcon>
+                <ListItemText primary={`${currentMode === 'light' ? 'Dark' : 'Light'} Mode`} primaryTypographyProps={{ fontWeight: 'bold', color: 'text.primary' }} />
+            </ListItemButton>
+        </ListItem>
+        <Divider sx={{ my: 1 }} />
         {menuItems.map((item) => (
-          // THE FIX: Removed 'button' prop and wrapped content in ListItemButton
           <ListItem disablePadding key={item.text} sx={{ mb: 1, mx: 1 }}>
             <ListItemButton 
               onClick={() => { navigate(item.path); setDrawerOpen(false); }}
               sx={{ 
                 borderRadius: 2,
-                bgcolor: location.pathname === item.path ? '#e3f2fd' : 'transparent',
-                color: location.pathname === item.path ? '#1a237e' : 'text.primary',
-                '&:hover': { bgcolor: '#f1f3f5' }
+                bgcolor: location.pathname === item.path ? (currentMode === 'dark' ? 'rgba(255,255,255,0.1)' : '#e3f2fd') : 'transparent',
+                color: location.pathname === item.path ? (currentMode === 'dark' ? '#64b5f6' : '#1a237e') : 'text.primary',
+                '&:hover': { bgcolor: currentMode === 'dark' ? 'rgba(255,255,255,0.05)' : '#f1f3f5' }
               }}
             >
-              <ListItemIcon sx={{ color: location.pathname === item.path ? '#1a237e' : 'action.active' }}>
+              <ListItemIcon sx={{ color: location.pathname === item.path ? (currentMode === 'dark' ? '#64b5f6' : '#1a237e') : 'action.active' }}>
                 {item.icon}
               </ListItemIcon>
               <ListItemText primary={item.text} primaryTypographyProps={{ fontWeight: 'bold' }} />
@@ -98,18 +113,11 @@ export default function Navbar() {
       <Divider />
       <Box sx={{ p: 2 }}>
         {user ? (
-            <Button 
-                fullWidth variant="outlined" color="error" startIcon={<LogoutIcon />} 
-                onClick={handleLogout} sx={{ fontWeight: 'bold', borderWidth: 2 }}
-            >
+            <Button fullWidth variant="outlined" color="error" startIcon={<LogoutIcon />} onClick={handleLogout} sx={{ fontWeight: 'bold', borderWidth: 2 }}>
                 LOG OUT
             </Button>
         ) : (
-            <Button 
-                fullWidth variant="contained" startIcon={<LoginIcon />} 
-                onClick={() => { navigate('/login'); setDrawerOpen(false); }} 
-                sx={{ bgcolor: '#1a237e', fontWeight: 'bold' }}
-            >
+            <Button fullWidth variant="contained" startIcon={<LoginIcon />} onClick={() => { navigate('/login'); setDrawerOpen(false); }} sx={{ bgcolor: '#1a237e', fontWeight: 'bold' }}>
                 LOG IN / SIGN UP
             </Button>
         )}
@@ -119,12 +127,12 @@ export default function Navbar() {
 
   return (
     <>
-      <AppBar position="sticky" elevation={0} sx={{ bgcolor: '#1a237e', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+      <AppBar position="sticky" elevation={0} sx={{ bgcolor: currentMode === 'dark' ? '#1e1e1e' : '#1a237e', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
         <Toolbar sx={{ justifyContent: 'space-between', px: { xs: 2, md: 4 }, py: 1 }}>
           
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, cursor: 'pointer' }} onClick={() => navigate('/models')}>
             <Avatar src="/RedBrickLogo.png" sx={{ width: 45, height: 45, bgcolor: 'white', p: 0.5 }} />
-            <Typography variant="h5" fontWeight="900" sx={{ letterSpacing: 1, display: { xs: 'none', sm: 'block' } }}>
+            <Typography variant="h5" fontWeight="900" sx={{ letterSpacing: 1, display: { xs: 'none', sm: 'block' }, color: 'white' }}>
               RED BRICK
             </Typography>
           </Box>
@@ -133,8 +141,7 @@ export default function Navbar() {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               {menuItems.map((item) => (
                 <Button 
-                  key={item.text} 
-                  onClick={() => navigate(item.path)}
+                  key={item.text} onClick={() => navigate(item.path)}
                   sx={{ 
                     color: location.pathname === item.path ? '#64b5f6' : 'white', 
                     fontWeight: 'bold', px: 2,
@@ -147,9 +154,14 @@ export default function Navbar() {
               ))}
               <Box sx={{ ml: 2, pl: 2, borderLeft: '1px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', gap: 2 }}>
                 
+                {/* DARK MODE TOGGLE BUTTON */}
+                <IconButton onClick={toggleMode} sx={{ color: 'white' }}>
+                  {currentMode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
+                </IconButton>
+
                 {user ? (
                     <>
-                        <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                        <Typography variant="body2" sx={{ opacity: 0.8, color: 'white' }}>
                         Hello, <strong>{user.firstName || 'User'}</strong>
                         </Typography>
                         <IconButton onClick={handleLogout} sx={{ color: '#ffcdd2', '&:hover': { bgcolor: 'rgba(211, 47, 47, 0.2)' } }}>
@@ -157,11 +169,7 @@ export default function Navbar() {
                         </IconButton>
                     </>
                 ) : (
-                    <Button 
-                        variant="outlined" 
-                        onClick={() => navigate('/login')} 
-                        sx={{ color: 'white', borderColor: 'rgba(255,255,255,0.5)', fontWeight: 'bold', '&:hover': { borderColor: 'white', bgcolor: 'rgba(255,255,255,0.1)' } }}
-                    >
+                    <Button variant="outlined" onClick={() => navigate('/login')} sx={{ color: 'white', borderColor: 'rgba(255,255,255,0.5)', fontWeight: 'bold', '&:hover': { borderColor: 'white', bgcolor: 'rgba(255,255,255,0.1)' } }}>
                         Log In
                     </Button>
                 )}
@@ -170,12 +178,10 @@ export default function Navbar() {
             </Box>
           ) : (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-              {user && (
-                  <Typography variant="body2" sx={{ color: 'white', opacity: 0.9 }}>
-                    Hello, <strong>{user.firstName || 'User'}</strong>
-                  </Typography>
-              )}
-              <IconButton edge="end" color="inherit" onClick={() => setDrawerOpen(true)} sx={{ p: 0.5 }}>
+              <IconButton onClick={toggleMode} sx={{ color: 'white' }}>
+                  {currentMode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
+              </IconButton>
+              <IconButton edge="end" color="inherit" onClick={() => setDrawerOpen(true)} sx={{ p: 0.5, color: 'white' }}>
                 <MenuIcon fontSize="large" />
               </IconButton>
             </Box>

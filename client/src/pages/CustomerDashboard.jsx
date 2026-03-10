@@ -8,7 +8,6 @@ import {
   Dialog, DialogTitle, DialogContent, DialogActions, Divider,
   Pagination, Avatar, Stack, Rating, Snackbar, Alert, CircularProgress
 } from '@mui/material';
-import Navbar from '../components/Navbar';
 
 // Icons
 import ForkliftIcon from '@mui/icons-material/Forklift';
@@ -213,13 +212,13 @@ export default function CustomerDashboard() {
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', backgroundColor: '#f8f9fa', pb: 8 }}>
-      <Navbar />
+    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', pb: 8 }}>
+      {/* THE FIX: Navbar component completely removed from this file */}
       
       <Box sx={{ p: { xs: 2, md: 5 }, maxWidth: 1500, mx: 'auto' }}>
         <Grid container spacing={4}>
           
-          <Grid size={{ xs: 12 }}>
+          <Grid item xs={12}>
             <Grid container spacing={3}>
               {[
                 { label: 'Pending Requests', val: stats.requested, col: '#1976d2', icon: <ForkliftIcon /> },
@@ -227,8 +226,8 @@ export default function CustomerDashboard() {
                 { label: 'Completed Jobs', val: stats.completed, col: '#455a64', icon: <DoneAllIcon /> },
                 { label: 'Rejected / Cancelled', val: stats.due, col: '#d32f2f', icon: <WarningIcon /> },
               ].map((kpi, i) => (
-                <Grid key={i} size={{ xs: 12, sm: 6, md: 3 }}>
-                  <Paper elevation={0} sx={{ p: 3, borderRadius: 4, border: '1px solid #e0e0e0', display: 'flex', alignItems: 'center', gap: 3, transition: 'transform 0.2s', '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 8px 24px rgba(0,0,0,0.05)' } }}>
+                <Grid item xs={12} sm={6} md={3} key={i}>
+                  <Paper elevation={0} sx={{ p: 3, borderRadius: 4, border: '1px solid', borderColor: 'divider', display: 'flex', alignItems: 'center', gap: 3, bgcolor: 'background.paper', transition: 'transform 0.2s', '&:hover': { transform: 'translateY(-4px)', boxShadow: 6 } }}>
                     <Avatar sx={{ bgcolor: `${kpi.col}15`, color: kpi.col, width: 60, height: 60 }}>{kpi.icon}</Avatar>
                     <Box>
                       <Typography variant="h4" sx={{ fontWeight: 900 }}>{kpi.val}</Typography>
@@ -240,10 +239,10 @@ export default function CustomerDashboard() {
             </Grid>
           </Grid>
 
-          <Grid size={{ xs: 12, md: 8 }}>
-            <Paper elevation={0} sx={{ p: 4, borderRadius: 4, border: '1px solid #e0e0e0', height: '100%' }}>
+          <Grid item xs={12} md={8}>
+            <Paper elevation={0} sx={{ p: 4, borderRadius: 4, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper', height: '100%' }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4, flexWrap: 'wrap', gap: 2 }}>
-                <Typography variant="h5" fontWeight="900" color="#1a237e">RENTAL AGREEMENTS</Typography>
+                <Typography variant="h5" fontWeight="900" color="primary.main">RENTAL AGREEMENTS</Typography>
                 <TextField 
                   placeholder="Search Models or ID..." 
                   size="small" 
@@ -255,7 +254,7 @@ export default function CustomerDashboard() {
 
               <TableContainer sx={{ minHeight: 400 }}>
                 <Table sx={{ minWidth: 700 }}>
-                  <TableHead sx={{ bgcolor: '#f1f3f5' }}>
+                  <TableHead sx={{ bgcolor: 'background.default' }}>
                     <TableRow>
                       <TableCell sx={{ fontWeight: 'bold', py: 2 }}>REF ID</TableCell>
                       <TableCell sx={{ fontWeight: 'bold', py: 2 }}>EQUIPMENT</TableCell>
@@ -280,7 +279,7 @@ export default function CustomerDashboard() {
                                   <Avatar 
                                       src={row.forklift?.images?.[0] || row.forklift?.image} 
                                       variant="rounded" 
-                                      sx={{ width: 55, height: 55, border: '1px solid #eee' }}
+                                      sx={{ width: 55, height: 55, border: '1px solid', borderColor: 'divider' }}
                                   >
                                       <ForkliftIcon />
                                   </Avatar>
@@ -315,7 +314,7 @@ export default function CustomerDashboard() {
                             <TableCell align="center" sx={{ py: 2.5 }}>
                               <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
                                 <Tooltip title="View Details">
-                                  <IconButton onClick={() => {setSelectedReq(row); setOpenModal(true);}} sx={{ bgcolor: '#f1f3f5', '&:hover': { bgcolor: '#e0e0e0' } }}>
+                                  <IconButton onClick={() => {setSelectedReq(row); setOpenModal(true);}} sx={{ bgcolor: 'background.default', '&:hover': { bgcolor: 'action.hover' } }}>
                                     <VisibilityIcon color="primary"/>
                                   </IconButton>
                                 </Tooltip>
@@ -323,7 +322,7 @@ export default function CustomerDashboard() {
                                 {/* --- THE FIX: NEW CANCEL BUTTON IN TABLE --- */}
                                 {row.status === 'Pending' && (
                                   <Tooltip title="Cancel Request">
-                                    <IconButton onClick={() => handleOpenCancel(row)} sx={{ bgcolor: '#ffebee', '&:hover': { bgcolor: '#ffcdd2' } }}>
+                                    <IconButton onClick={() => handleOpenCancel(row)} sx={{ bgcolor: 'background.default', '&:hover': { bgcolor: 'error.main', color: 'white' } }}>
                                       <CancelIcon color="error"/>
                                     </IconButton>
                                   </Tooltip>
@@ -331,7 +330,7 @@ export default function CustomerDashboard() {
 
                                 {row.status === 'Completed' && (
                                   <Tooltip title="Leave a Review">
-                                    <IconButton onClick={() => handleOpenReview(row)} sx={{ bgcolor: '#e8f5e9', '&:hover': { bgcolor: '#c8e6c9' } }}>
+                                    <IconButton onClick={() => handleOpenReview(row)} sx={{ bgcolor: 'background.default', '&:hover': { bgcolor: 'success.main', color: 'white' } }}>
                                       <RateReviewIcon color="success"/>
                                     </IconButton>
                                   </Tooltip>
@@ -353,17 +352,17 @@ export default function CustomerDashboard() {
               </TableContainer>
 
               {pageCount > 1 && (
-                <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4, pt: 3, borderTop: '1px solid #eee' }}>
+                <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4, pt: 3, borderTop: '1px solid', borderColor: 'divider' }}>
                   <Pagination count={pageCount} page={page} onChange={(e, v) => setPage(v)} color="primary" size="large" shape="rounded" />
                 </Box>
               )}
             </Paper>
           </Grid>
 
-          <Grid size={{ xs: 12, md: 4 }}>
+          <Grid item xs={12} md={4}>
             
-            <Paper elevation={0} sx={{ p: 4, borderRadius: 4, border: '1px solid #e0e0e0', mb: 4 }}>
-              <Typography variant="h6" fontWeight="900" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#1a237e' }}>
+            <Paper elevation={0} sx={{ p: 4, borderRadius: 4, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper', mb: 4 }}>
+              <Typography variant="h6" fontWeight="900" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'primary.main' }}>
                 <NotificationsActiveIcon color="warning" /> RECENT ALERTS
               </Typography>
               <Divider sx={{ mb: 2 }} />
@@ -374,12 +373,12 @@ export default function CustomerDashboard() {
                 '&::-webkit-scrollbar-thumb': { backgroundColor: '#ccc', borderRadius: '10px' }
               }}>
                 {myRentals.slice(0, 8).map((req, i) => (
-                  <ListItem key={i} sx={{ px: 0, py: 2, borderBottom: '1px solid #f1f3f5' }}>
+                  <ListItem key={i} sx={{ px: 0, py: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
                     <ListItemIcon sx={{ minWidth: 40 }}>{getAlertIcon(req.status)}</ListItemIcon>
                     <ListItemText 
                       primary={`Request for ${req.forklift?.model || 'Vehicle'}`} 
                       secondary={`${req.status} - ${new Date(req.createdAt).toLocaleDateString()}`}
-                      primaryTypographyProps={{ variant: 'body1', fontWeight: 'bold' }}
+                      primaryTypographyProps={{ variant: 'body1', fontWeight: 'bold', color: 'text.primary' }}
                       secondaryTypographyProps={{ variant: 'body2', mt: 0.5 }}
                     />
                   </ListItem>
@@ -388,13 +387,13 @@ export default function CustomerDashboard() {
               </List>
             </Paper>
 
-            <Paper elevation={0} sx={{ p: 5, borderRadius: 4, bgcolor: '#1a237e', color: 'white', textAlign: 'center' }}>
+            <Paper elevation={0} sx={{ p: 5, borderRadius: 4, bgcolor: 'primary.main', color: 'white', textAlign: 'center' }}>
               <Typography variant="h5" fontWeight="900" mb={1}>NEW PROJECT?</Typography>
               <Typography variant="body1" sx={{ opacity: 0.8, mb: 4 }}>Explore our heavy-duty fleet to find the perfect equipment.</Typography>
               <Box sx={{ bgcolor: 'rgba(255,255,255,0.1)', p: 3, borderRadius: '50%', mb: 4, display: 'inline-flex' }}>
                  <ForkliftIcon sx={{ fontSize: 70, opacity: 0.9 }} />
               </Box>
-              <Button variant="contained" size="large" fullWidth sx={{ bgcolor: 'white', color: '#1a237e', fontWeight: 'bold', py: 1.5, '&:hover': { bgcolor: '#f1f1f1' } }} onClick={() => navigate('/models')}>
+              <Button variant="contained" size="large" fullWidth sx={{ bgcolor: 'background.paper', color: 'primary.main', fontWeight: 'bold', py: 1.5, '&:hover': { bgcolor: 'action.hover' } }} onClick={() => navigate('/models')}>
                 BROWSE CATALOG
               </Button>
             </Paper>
@@ -403,11 +402,11 @@ export default function CustomerDashboard() {
       </Box>
 
       {/* --- REVIEW SUBMISSION MODAL --- */}
-      <Dialog open={reviewModalOpen} onClose={() => setReviewModalOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 'bold', bgcolor: '#1a237e', color: 'white', py: 2.5, display: 'flex', alignItems: 'center', gap: 1 }}>
+      <Dialog open={reviewModalOpen} onClose={() => setReviewModalOpen(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { bgcolor: 'background.paper' } }}>
+        <DialogTitle sx={{ fontWeight: 'bold', bgcolor: 'primary.main', color: 'white', py: 2.5, display: 'flex', alignItems: 'center', gap: 1 }}>
           <RateReviewIcon /> RATE YOUR EXPERIENCE
         </DialogTitle>
-        <DialogContent dividers sx={{ p: { xs: 3, md: 5 }, bgcolor: '#f8f9fa' }}>
+        <DialogContent dividers sx={{ p: { xs: 3, md: 5 }, bgcolor: 'background.default', borderColor: 'divider' }}>
           <Box sx={{ textAlign: 'center', mb: 4 }}>
              <Typography variant="h6" fontWeight="bold">How was the {reviewTarget?.forklift?.make} {reviewTarget?.forklift?.model}?</Typography>
              <Typography variant="body2" color="text.secondary">Your feedback helps others choose the right equipment.</Typography>
@@ -430,7 +429,7 @@ export default function CustomerDashboard() {
                 onChange={(e) => setComment(e.target.value)}
                 fullWidth
                 variant="outlined"
-                sx={{ bgcolor: 'white' }}
+                sx={{ bgcolor: 'background.paper' }}
              />
 
              <Box sx={{ width: '100%', textAlign: 'left', mt: 1 }}>
@@ -458,51 +457,51 @@ export default function CustomerDashboard() {
                    <Avatar 
                       src={reviewImage} 
                       variant="rounded" 
-                      sx={{ width: 55, height: 55, border: '2px solid #1a237e' }} 
+                      sx={{ width: 55, height: 55, border: '2px solid', borderColor: 'primary.main' }} 
                    />
                  )}
                </Box>
              </Box>
           </Box>
         </DialogContent>
-        <DialogActions sx={{ p: 3, bgcolor: '#f1f3f5' }}>
+        <DialogActions sx={{ p: 3, bgcolor: 'background.default' }}>
           <Button onClick={() => setReviewModalOpen(false)} sx={{ fontWeight: 'bold', color: 'text.secondary', mr: 2 }}>Cancel</Button>
-          <Button onClick={submitReview} variant="contained" size="large" sx={{ fontWeight: 'bold', bgcolor: '#1a237e', px: 5 }} disabled={uploading}>Submit Review</Button>
+          <Button onClick={submitReview} variant="contained" size="large" sx={{ fontWeight: 'bold', bgcolor: 'primary.main', px: 5 }} disabled={uploading}>Submit Review</Button>
         </DialogActions>
       </Dialog>
 
       {/* --- NEW: CANCEL CONFIRMATION MODAL --- */}
-      <Dialog open={cancelModalOpen} onClose={() => setCancelModalOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 'bold', bgcolor: '#d32f2f', color: 'white', textAlign: 'center' }}>
+      <Dialog open={cancelModalOpen} onClose={() => setCancelModalOpen(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { bgcolor: 'background.paper' } }}>
+        <DialogTitle sx={{ fontWeight: 'bold', bgcolor: 'error.main', color: 'white', textAlign: 'center' }}>
           Cancel Booking Request
         </DialogTitle>
-        <DialogContent dividers sx={{ p: 4, textAlign: 'center' }}>
-          <CancelIcon sx={{ fontSize: 70, color: '#d32f2f', mb: 2 }} />
+        <DialogContent dividers sx={{ p: 4, textAlign: 'center', borderColor: 'divider' }}>
+          <CancelIcon sx={{ fontSize: 70, color: 'error.main', mb: 2 }} />
           <Typography variant="h6" fontWeight="900" gutterBottom>Are you sure?</Typography>
           <Typography variant="body2" color="text.secondary">
             This will permanently cancel your request for the <strong>{rentalToCancel?.forklift?.make} {rentalToCancel?.forklift?.model}</strong>. You will need to submit a new request if you change your mind.
           </Typography>
         </DialogContent>
-        <DialogActions sx={{ p: 3, justifyContent: 'center', gap: 2, bgcolor: '#f8f9fa' }}>
+        <DialogActions sx={{ p: 3, justifyContent: 'center', gap: 2, bgcolor: 'background.default' }}>
           <Button onClick={() => setCancelModalOpen(false)} sx={{ fontWeight: 'bold', color: 'text.secondary' }}>Keep Booking</Button>
           <Button onClick={executeCancelBooking} variant="contained" color="error" sx={{ fontWeight: 'bold', px: 4 }}>Yes, Cancel It</Button>
         </DialogActions>
       </Dialog>
 
       {/* --- AGREEMENT DETAILS MODAL --- */}
-      <Dialog open={openModal} onClose={() => setOpenModal(false)} fullWidth maxWidth="md">
-        <DialogTitle sx={{ fontWeight: 'bold', bgcolor: '#1a237e', color: 'white', py: 2.5 }}>
+      <Dialog open={openModal} onClose={() => setOpenModal(false)} fullWidth maxWidth="md" PaperProps={{ sx: { bgcolor: 'background.paper' } }}>
+        <DialogTitle sx={{ fontWeight: 'bold', bgcolor: 'primary.main', color: 'white', py: 2.5 }}>
           AGREEMENT DETAILS
         </DialogTitle>
-        <DialogContent dividers sx={{ p: { xs: 3, md: 5 }, bgcolor: '#f8f9fa' }}>
+        <DialogContent dividers sx={{ p: { xs: 3, md: 5 }, bgcolor: 'background.default', borderColor: 'divider' }}>
           {selectedReq && (
             <Grid container spacing={4}>
               
-              <Grid size={{ xs: 12, md: 8 }} sx={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+              <Grid item xs={12} md={8} sx={{ display: 'flex', gap: 4, alignItems: 'center' }}>
                 <Avatar 
                     src={selectedReq.forklift?.images?.[0] || selectedReq.forklift?.image} 
                     variant="rounded" 
-                    sx={{ width: 120, height: 120, border: '1px solid #e0e0e0', bgcolor: 'white', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}
+                    sx={{ width: 120, height: 120, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper', boxShadow: 2 }}
                 >
                     <ForkliftIcon sx={{ fontSize: 60 }} color="action" />
                 </Avatar>
@@ -510,29 +509,29 @@ export default function CustomerDashboard() {
                     <Typography variant="overline" color="text.secondary" fontWeight="900" letterSpacing={1.5}>
                         EQUIPMENT REQUESTED
                     </Typography>
-                    <Typography variant="h4" fontWeight="900" color="#1a237e" sx={{ mb: 1, mt: 0.5 }}>
+                    <Typography variant="h4" fontWeight="900" color="primary.main" sx={{ mb: 1, mt: 0.5 }}>
                         {selectedReq.forklift?.make || 'Unknown Make'} {selectedReq.forklift?.model || ''}
                     </Typography>
-                    <Typography variant="caption" sx={{ display: 'inline-block', bgcolor: '#e0e0e0', color: '#616161', px: 1.5, py: 0.5, borderRadius: 1, fontWeight: 'bold' }}>
+                    <Typography variant="caption" sx={{ display: 'inline-block', bgcolor: 'action.hover', color: 'text.primary', px: 1.5, py: 0.5, borderRadius: 1, fontWeight: 'bold' }}>
                         Ref ID: #{selectedReq._id.toUpperCase()}
                     </Typography>
                 </Box>
               </Grid>
 
-              <Grid size={{ xs: 12, md: 4 }} sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: { xs: 'flex-start', md: 'flex-end' } }}>
+              <Grid item xs={12} md={4} sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: { xs: 'flex-start', md: 'flex-end' } }}>
                 <Typography variant="subtitle2" color="text.secondary" fontWeight="bold" gutterBottom>
                   CURRENT STATUS
                 </Typography> 
                 <Chip label={selectedReq.status} color={getStatusColor(selectedReq.status)} sx={{ fontWeight: 'bold', px: 3, py: 3, fontSize: '1.2rem', borderRadius: 2 }} />
               </Grid>
 
-              <Grid size={{ xs: 12 }}><Divider /></Grid>
+              <Grid item xs={12}><Divider sx={{ borderColor: 'divider' }} /></Grid>
 
-              <Grid size={{ xs: 12, md: 6 }}>
+              <Grid item xs={12} md={6}>
                 <Typography variant="subtitle1" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, fontWeight: 'bold' }}>
                   <CalendarMonthIcon /> RENTAL TIMEFRAME
                 </Typography>
-                <Paper elevation={0} sx={{ p: 4, border: '1px solid #e0e0e0', borderRadius: 4, bgcolor: 'white', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                <Paper elevation={0} sx={{ p: 4, border: '1px solid', borderColor: 'divider', borderRadius: 4, bgcolor: 'background.paper', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                     <Stack direction="row" spacing={4} justifyContent="space-between">
                         <Box>
                             <Typography variant="caption" color="text.secondary" fontWeight="bold" textTransform="uppercase">Start Date</Typography>
@@ -545,10 +544,10 @@ export default function CustomerDashboard() {
                     </Stack>
                     
                     {selectedReq.status === 'Completed' && selectedReq.actualReturnDate && (
-                      <Box sx={{ mt: 2, pt: 2, borderTop: '2px dashed #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Box sx={{ mt: 2, pt: 2, borderTop: '2px dashed', borderColor: 'divider', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <Box>
                               <Typography variant="caption" color="text.secondary" fontWeight="bold" textTransform="uppercase">Actual Return</Typography>
-                              <Typography variant="h6" fontWeight="900" color="#2e7d32">{new Date(selectedReq.actualReturnDate).toLocaleDateString()}</Typography>
+                              <Typography variant="h6" fontWeight="900" color="success.main">{new Date(selectedReq.actualReturnDate).toLocaleDateString()}</Typography>
                           </Box>
                           <Box textAlign="right">
                              {(() => {
@@ -560,7 +559,7 @@ export default function CustomerDashboard() {
                     )}
 
                     {!selectedReq.actualReturnDate && (
-                      <Box sx={{ mt: 3, pt: 3, borderTop: '2px dashed #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Box sx={{ mt: 3, pt: 3, borderTop: '2px dashed', borderColor: 'divider', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <Typography variant="body1" fontWeight="bold" color="text.secondary">Total Duration:</Typography>
                           <Typography variant="h5" color="primary.main" fontWeight="900">{calculateDays(selectedReq.startDate, selectedReq.endDate)} Day(s)</Typography>
                       </Box>
@@ -568,25 +567,25 @@ export default function CustomerDashboard() {
                 </Paper>
               </Grid>
 
-              <Grid size={{ xs: 12, md: 6 }}>
+              <Grid item xs={12} md={6}>
                 <Typography variant="subtitle1" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, fontWeight: 'bold' }}>
                   <BuildCircleIcon /> VEHICLE SPECIFICATIONS
                 </Typography>
-                <Paper elevation={0} sx={{ p: 4, border: '1px solid #e0e0e0', borderRadius: 4, bgcolor: 'white', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                <Paper elevation={0} sx={{ p: 4, border: '1px solid', borderColor: 'divider', borderRadius: 4, bgcolor: 'background.paper', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                    <Grid container spacing={3}>
-                      <Grid size={{ xs: 6 }}>
+                      <Grid item xs={6}>
                           <Typography variant="caption" color="text.secondary" fontWeight="bold" textTransform="uppercase">Lift Capacity</Typography>
                           <Typography variant="body1" fontWeight="bold">{selectedReq.forklift?.capacity ? `${selectedReq.forklift.capacity} lbs` : 'N/A'}</Typography>
                       </Grid>
-                      <Grid size={{ xs: 6 }}>
+                      <Grid item xs={6}>
                           <Typography variant="caption" color="text.secondary" fontWeight="bold" textTransform="uppercase">Horsepower</Typography>
                           <Typography variant="body1" fontWeight="bold">{selectedReq.forklift?.power ? `${selectedReq.forklift.power} HP` : 'N/A'}</Typography>
                       </Grid>
-                      <Grid size={{ xs: 6 }}>
+                      <Grid item xs={6}>
                           <Typography variant="caption" color="text.secondary" fontWeight="bold" textTransform="uppercase">Torque Rating</Typography>
                           <Typography variant="body1" fontWeight="bold">{selectedReq.forklift?.torque || 'N/A'}</Typography>
                       </Grid>
-                      <Grid size={{ xs: 6 }}>
+                      <Grid item xs={6}>
                           <Typography variant="caption" color="text.secondary" fontWeight="bold" textTransform="uppercase">Fuel Type</Typography>
                           <Typography variant="body1" fontWeight="bold">{selectedReq.forklift?.fuel || 'N/A'}</Typography>
                       </Grid>
@@ -596,10 +595,10 @@ export default function CustomerDashboard() {
 
               {/* --- THE FIX: NEW CANCEL SECTION INSIDE MODAL --- */}
               {selectedReq.status === 'Pending' && (
-                <Grid size={{ xs: 12 }}>
-                  <Paper elevation={0} sx={{ p: 3, mt: 2, bgcolor: '#ffebee', borderRadius: 4, border: '1px solid #ffcdd2', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Grid item xs={12}>
+                  <Paper elevation={0} sx={{ p: 3, mt: 2, bgcolor: 'background.paper', borderRadius: 4, border: '1px solid', borderColor: 'error.main', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <Box>
-                        <Typography variant="body1" fontWeight="bold" color="#c62828">Change of Plans?</Typography>
+                        <Typography variant="body1" fontWeight="bold" color="error.main">Change of Plans?</Typography>
                         <Typography variant="body2" color="text.secondary">You can safely cancel this booking before it is approved.</Typography>
                       </Box>
                       <Button variant="contained" color="error" startIcon={<CancelIcon />} onClick={() => handleOpenCancel(selectedReq)} sx={{ fontWeight: 'bold', boxShadow: 'none' }}>
@@ -610,12 +609,12 @@ export default function CustomerDashboard() {
               )}
 
               {selectedReq.status === 'Rejected' && selectedReq.rejectionReason && (
-                <Grid size={{ xs: 12 }}>
+                <Grid item xs={12}>
                   <Typography variant="subtitle1" color="error.main" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, mt: 2, fontWeight: 'bold' }}>
                     <CancelIcon /> REJECTION DETAILS
                   </Typography>
-                  <Box sx={{ p: 4, bgcolor: '#ffebee', borderRadius: 4, border: '1px solid #ffcdd2' }}>
-                      <Typography variant="body1" color="error.dark" fontWeight="500">{selectedReq.rejectionReason}</Typography>
+                  <Box sx={{ p: 4, bgcolor: 'background.paper', borderRadius: 4, border: '1px solid', borderColor: 'error.main' }}>
+                      <Typography variant="body1" color="error.main" fontWeight="500">{selectedReq.rejectionReason}</Typography>
                   </Box>
                 </Grid>
               )}
@@ -623,8 +622,8 @@ export default function CustomerDashboard() {
             </Grid>
           )}
         </DialogContent>
-        <DialogActions sx={{ p: 3, bgcolor: '#f1f3f5' }}>
-          <Button onClick={() => setOpenModal(false)} variant="contained" size="large" sx={{ fontWeight: 'bold', bgcolor: '#1a237e', px: 5 }}>Close Window</Button>
+        <DialogActions sx={{ p: 3, bgcolor: 'background.default' }}>
+          <Button onClick={() => setOpenModal(false)} variant="contained" size="large" sx={{ fontWeight: 'bold', bgcolor: 'primary.main', px: 5 }}>Close Window</Button>
         </DialogActions>
       </Dialog>
 

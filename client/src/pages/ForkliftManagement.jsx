@@ -5,7 +5,7 @@ import {
   TableBody, TableCell, TableContainer, TableHead, TableRow,
   IconButton, MenuItem, FormControlLabel, Switch, 
   FormControl, InputLabel, Select, Stack, Chip,
-  Dialog, DialogTitle, DialogContent, DialogActions, Tooltip, Divider
+  Dialog, DialogTitle, DialogContent, DialogActions, Tooltip, Divider, Container
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit'; 
@@ -14,7 +14,6 @@ import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import CancelIcon from '@mui/icons-material/Cancel';
 import LinkIcon from '@mui/icons-material/Link';
 import { useNavigate } from 'react-router-dom';
-import Navbar from '../components/Navbar';
 
 const fuelOptions = ['LPG', 'Diesel', 'Electric', 'Dual Fuel'];
 
@@ -211,22 +210,22 @@ export default function ForkliftManagement() {
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', backgroundColor: '#f4f6f8' }}>
-      <Navbar />
+    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', pb: 8 }}>
+      {/* NO NAVBAR HERE - Called globally in App.jsx */}
 
-      <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: 1400, mx: 'auto' }}>
+      <Container maxWidth="xl" sx={{ pt: { xs: 2, md: 5 } }}>
         
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
           <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/owner-dashboard')} sx={{ mr: 2, fontWeight: 'bold' }}>Back</Button>
-          <Typography variant="h4" sx={{ fontWeight: '900', color: '#1a237e' }}>FLEET MANAGEMENT</Typography>
+          <Typography variant="h4" sx={{ fontWeight: '900', color: 'primary.main' }}>FLEET MANAGEMENT</Typography>
         </Box>
 
         <Grid container spacing={4}>
 
           {/* --- LEFT COLUMN: ADD NEW FORM --- */}
-          <Grid size={{ xs: 12, md: 4 }}>
-            <Paper elevation={0} sx={{ p: 4, borderRadius: 3, border: '1px solid #e0e0e0' }}>
-              <Typography variant="h6" sx={{ fontWeight: '800', mb: 3, color: '#1a237e', borderBottom: '2px solid #eee', pb: 1 }}>
+          <Grid item xs={12} md={4}>
+            <Paper elevation={0} sx={{ p: 4, borderRadius: 3, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper' }}>
+              <Typography variant="h6" sx={{ fontWeight: '800', mb: 3, color: 'primary.main', borderBottom: '2px solid', borderColor: 'divider', pb: 1 }}>
                 ADD NEW VEHICLE
               </Typography>
 
@@ -258,17 +257,17 @@ export default function ForkliftManagement() {
                     {useImageUrl ? (
                       <TextField fullWidth size="small" label="Paste Image URL" name="image" value={formData.image} onChange={handleChange} placeholder="https://..." InputProps={{ startAdornment: <LinkIcon color="action" sx={{ mr: 1 }} /> }} />
                     ) : (
-                      <Box sx={{ border: '2px dashed #ccc', borderRadius: 2, p: 2, textAlign: 'center', bgcolor: '#fafafa' }}>
+                      <Box sx={{ border: '2px dashed', borderColor: 'divider', borderRadius: 2, p: 2, textAlign: 'center', bgcolor: 'background.default' }}>
                         <input accept="image/*" style={{ display: 'none' }} id="raised-button-file" multiple type="file" onChange={handleFileChange} />
                         <label htmlFor="raised-button-file">
-                          <Button variant="contained" component="span" startIcon={<CloudUploadIcon />} sx={{ bgcolor: '#455a64', '&:hover': { bgcolor: '#263238' } }}>SELECT IMAGES</Button>
+                          <Button variant="contained" component="span" startIcon={<CloudUploadIcon />} sx={{ bgcolor: 'action.active', '&:hover': { bgcolor: 'action.hover' } }}>SELECT IMAGES</Button>
                         </label>
                         {imagePreviews.length > 0 && (
                           <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 2, justifyContent: 'center' }}>
                             {imagePreviews.map((url, index) => (
                               <Box key={index} sx={{ position: 'relative', width: 60, height: 60 }}>
-                                <img src={url} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 6, border: '1px solid #ddd' }} />
-                                <IconButton size="small" onClick={() => removeImage(index)} sx={{ position: 'absolute', top: -10, right: -10, bgcolor: 'white', color: 'error.main', p: 0.2, '&:hover': { bgcolor: '#ffebee' } }}>
+                                <img src={url} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 6, border: '1px solid', borderColor: 'divider' }} />
+                                <IconButton size="small" onClick={() => removeImage(index)} sx={{ position: 'absolute', top: -10, right: -10, bgcolor: 'background.paper', color: 'error.main', p: 0.2, '&:hover': { bgcolor: 'action.hover' } }}>
                                   <CancelIcon fontSize="small" />
                                 </IconButton>
                               </Box>
@@ -279,7 +278,7 @@ export default function ForkliftManagement() {
                     )}
                   </Box>
 
-                  <Button type="submit" variant="contained" fullWidth disabled={uploading} sx={{ bgcolor: '#1a237e', fontWeight: 'bold', py: 1.5, mt: 1, '&:hover': { bgcolor: '#0d1440' } }}>
+                  <Button type="submit" variant="contained" fullWidth disabled={uploading} sx={{ bgcolor: 'primary.main', fontWeight: 'bold', py: 1.5, mt: 1, '&:hover': { bgcolor: 'primary.dark' } }}>
                     {uploading ? 'PROCESSING UPLOADS...' : 'ADD TO INVENTORY'}
                   </Button>
                 </Stack>
@@ -288,19 +287,19 @@ export default function ForkliftManagement() {
           </Grid>
 
           {/* --- RIGHT COLUMN: INVENTORY LIST --- */}
-          <Grid size={{ xs: 12, md: 8 }}>
-            <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: '1px solid #e0e0e0' }}>
+          <Grid item xs={12} md={8}>
+            <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper' }}>
               <Typography variant="h6" sx={{ fontWeight: '800', mb: 2 }}>CURRENT INVENTORY ({forklifts.length})</Typography>
 
               <TableContainer sx={{ maxHeight: 600 }}>
                 <Table stickyHeader>
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 'bold', bgcolor: '#f1f3f5' }}>IMAGE</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold', bgcolor: '#f1f3f5' }}>MODEL INFO</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold', bgcolor: '#f1f3f5' }}>SPECS</TableCell>
-                      <TableCell align="center" sx={{ fontWeight: 'bold', bgcolor: '#f1f3f5' }}>STATUS</TableCell>
-                      <TableCell align="center" sx={{ fontWeight: 'bold', bgcolor: '#f1f3f5' }}>ACTIONS</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold', bgcolor: 'background.default' }}>IMAGE</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold', bgcolor: 'background.default' }}>MODEL INFO</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold', bgcolor: 'background.default' }}>SPECS</TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 'bold', bgcolor: 'background.default' }}>STATUS</TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 'bold', bgcolor: 'background.default' }}>ACTIONS</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -312,9 +311,9 @@ export default function ForkliftManagement() {
                       <TableRow key={forklift._id} hover>
                         <TableCell>
                           <Box sx={{ position: 'relative', display: 'inline-block' }}>
-                            <img src={displayImage} alt="forklift" style={{ width: 60, height: 60, borderRadius: 8, objectFit: 'cover', border: '1px solid #eee' }} />
+                            <img src={displayImage} alt="forklift" style={{ width: 60, height: 60, borderRadius: 8, objectFit: 'cover', border: '1px solid', borderColor: 'divider' }} />
                             {forklift.images && forklift.images.length > 1 && (
-                              <Chip size="small" label={`+${forklift.images.length - 1}`} sx={{ position: 'absolute', bottom: -8, right: -8, height: 18, fontSize: '0.65rem', fontWeight: 'bold', bgcolor: '#1a237e', color: 'white' }} />
+                              <Chip size="small" label={`+${forklift.images.length - 1}`} sx={{ position: 'absolute', bottom: -8, right: -8, height: 18, fontSize: '0.65rem', fontWeight: 'bold', bgcolor: 'primary.main', color: 'white' }} />
                             )}
                           </Box>
                         </TableCell>
@@ -327,7 +326,6 @@ export default function ForkliftManagement() {
                           <Typography variant="caption" color="text.secondary">{forklift.fuel || 'N/A'}</Typography>
                         </TableCell>
                         
-                        {/* --- THE FIX: LOCKED STATUS DROPDOWN & RETURN DATE --- */}
                         <TableCell align="center">
                           <Tooltip title={isRented ? "Status locked by active rental agreement." : ""}>
                             <FormControl size="small" sx={{ minWidth: 140 }}>
@@ -337,20 +335,17 @@ export default function ForkliftManagement() {
                                 onChange={(e) => handleStatusChange(forklift._id, e.target.value)} 
                                 sx={{ 
                                   fontSize: '0.8rem', fontWeight: 'bold', 
-                                  color: forklift.status === 'Available' ? '#2e7d32' : forklift.status === 'Maintenance' ? '#d32f2f' : '#ed6c02', 
-                                  '.MuiOutlinedInput-notchedOutline': { borderColor: isRented ? '#e0e0e0' : 'transparent' }, 
-                                  '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: isRented ? '#e0e0e0' : '#ccc' }, 
-                                  bgcolor: isRented ? '#f5f5f5' : '#f8f9fa' 
+                                  color: forklift.status === 'Available' ? 'success.main' : forklift.status === 'Maintenance' ? 'error.main' : 'warning.main', 
+                                  bgcolor: 'background.default' 
                                 }}
                               >
-                                <MenuItem value="Available" sx={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#2e7d32' }}>Available</MenuItem>
-                                <MenuItem value="Maintenance" sx={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#d32f2f' }}>Maintenance</MenuItem>
-                                <MenuItem value="Rented" sx={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#ed6c02' }}>Rented</MenuItem>
+                                <MenuItem value="Available" sx={{ fontSize: '0.85rem', fontWeight: 'bold', color: 'success.main' }}>Available</MenuItem>
+                                <MenuItem value="Maintenance" sx={{ fontSize: '0.85rem', fontWeight: 'bold', color: 'error.main' }}>Maintenance</MenuItem>
+                                <MenuItem value="Rented" sx={{ fontSize: '0.85rem', fontWeight: 'bold', color: 'warning.main' }}>Rented</MenuItem>
                               </Select>
                             </FormControl>
                           </Tooltip>
 
-                          {/* Display Expected Return Date below the select if it's rented */}
                           {isRented && forklift.nextAvailableDate && (
                             <Typography variant="caption" display="block" color="error.main" fontWeight="bold" sx={{ mt: 0.5 }}>
                               Due: {new Date(forklift.nextAvailableDate).toLocaleDateString()}
@@ -361,12 +356,12 @@ export default function ForkliftManagement() {
                         <TableCell align="center">
                           <Box sx={{ display: 'flex', justifyContent: 'center' }}>
                             <Tooltip title="Edit Vehicle">
-                              <IconButton color="primary" onClick={() => handleOpenEdit(forklift)} sx={{ '&:hover': { bgcolor: '#e3f2fd' } }}>
+                              <IconButton color="primary" onClick={() => handleOpenEdit(forklift)} sx={{ '&:hover': { bgcolor: 'action.hover' } }}>
                                 <EditIcon />
                               </IconButton>
                             </Tooltip>
                             <Tooltip title="Delete Vehicle">
-                              <IconButton color="error" onClick={() => handleDelete(forklift._id)} sx={{ '&:hover': { bgcolor: '#ffebee' } }}>
+                              <IconButton color="error" onClick={() => handleDelete(forklift._id)} sx={{ '&:hover': { bgcolor: 'action.hover' } }}>
                                 <DeleteIcon />
                               </IconButton>
                             </Tooltip>
@@ -381,15 +376,15 @@ export default function ForkliftManagement() {
           </Grid>
 
         </Grid>
-      </Box>
+      </Container>
 
       {/* --- EDIT FORKLIFT MODAL --- */}
-      <Dialog open={editModalOpen} onClose={() => setEditModalOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 'bold', bgcolor: '#1a237e', color: 'white' }}>
+      <Dialog open={editModalOpen} onClose={() => setEditModalOpen(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { bgcolor: 'background.paper', borderRadius: 3 } }}>
+        <DialogTitle sx={{ fontWeight: 'bold', bgcolor: 'primary.main', color: 'white' }}>
           EDIT VEHICLE DETAILS
         </DialogTitle>
         <form onSubmit={handleEditSubmit}>
-          <DialogContent dividers>
+          <DialogContent dividers sx={{ borderColor: 'divider' }}>
             {editFormData && (
               <Stack spacing={2.5} sx={{ mt: 1 }}>
                 <Stack direction="row" spacing={2}>
@@ -410,7 +405,7 @@ export default function ForkliftManagement() {
                   </FormControl>
                 </Stack>
 
-                <Divider sx={{ my: 2 }}>IMAGE SETTINGS</Divider>
+                <Divider sx={{ my: 2, borderColor: 'divider' }}>IMAGE SETTINGS</Divider>
 
                 <TextField 
                   fullWidth 
@@ -418,18 +413,17 @@ export default function ForkliftManagement() {
                   label="Primary Image URL" 
                   value={editFormData.image || ''} 
                   onChange={(e) => setEditFormData({...editFormData, image: e.target.value})}
-                  helperText="Paste a direct link to update the main display image."
                   InputProps={{ startAdornment: <LinkIcon sx={{ mr: 1, color: 'action.active' }} /> }}
                   sx={{ mb: 2 }}
                 />
 
-                <Box sx={{ border: '2px dashed #ccc', borderRadius: 2, p: 2, textAlign: 'center', bgcolor: '#fafafa' }}>
+                <Box sx={{ border: '2px dashed', borderColor: 'divider', borderRadius: 2, p: 2, textAlign: 'center', bgcolor: 'background.default' }}>
                   <Typography variant="body2" color="text.secondary" gutterBottom>
-                    Or select local files to upload. This will overwrite the URL above.
+                    Or select local files to upload.
                   </Typography>
                   <input accept="image/*" style={{ display: 'none' }} id="edit-button-file" multiple type="file" onChange={handleEditFileChange} />
                   <label htmlFor="edit-button-file">
-                    <Button variant="contained" component="span" startIcon={<CloudUploadIcon />} sx={{ bgcolor: '#455a64', '&:hover': { bgcolor: '#263238' } }}>
+                    <Button variant="contained" component="span" startIcon={<CloudUploadIcon />} sx={{ bgcolor: 'action.active', '&:hover': { bgcolor: 'action.hover' } }}>
                       UPLOAD LOCAL FILES
                     </Button>
                   </label>
@@ -437,8 +431,8 @@ export default function ForkliftManagement() {
                     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 2, justifyContent: 'center' }}>
                       {editImagePreviews.map((url, index) => (
                         <Box key={index} sx={{ position: 'relative', width: 60, height: 60 }}>
-                          <img src={url} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 6, border: '1px solid #ddd' }} />
-                          <IconButton size="small" onClick={() => removeEditImage(index)} sx={{ position: 'absolute', top: -10, right: -10, bgcolor: 'white', color: 'error.main', p: 0.2, '&:hover': { bgcolor: '#ffebee' } }}>
+                          <img src={url} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 6, border: '1px solid', borderColor: 'divider' }} />
+                          <IconButton size="small" onClick={() => removeEditImage(index)} sx={{ position: 'absolute', top: -10, right: -10, bgcolor: 'background.paper', color: 'error.main', p: 0.2, '&:hover': { bgcolor: 'action.hover' } }}>
                             <CancelIcon fontSize="small" />
                           </IconButton>
                         </Box>
@@ -449,9 +443,9 @@ export default function ForkliftManagement() {
               </Stack>
             )}
           </DialogContent>
-          <DialogActions sx={{ p: 2, bgcolor: '#f8f9fa' }}>
+          <DialogActions sx={{ p: 2, bgcolor: 'background.default', borderTop: '1px solid', borderColor: 'divider' }}>
             <Button onClick={() => setEditModalOpen(false)} color="inherit" sx={{ fontWeight: 'bold' }}>CANCEL</Button>
-            <Button type="submit" variant="contained" disabled={isEditingSaving} sx={{ bgcolor: '#1a237e' }}>
+            <Button type="submit" variant="contained" disabled={isEditingSaving} sx={{ bgcolor: 'primary.main' }}>
               {isEditingSaving ? 'SAVING...' : 'SAVE CHANGES'}
             </Button>
           </DialogActions>
