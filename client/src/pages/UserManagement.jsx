@@ -9,7 +9,7 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import PersonIcon from '@mui/icons-material/Person';
 import SecurityIcon from '@mui/icons-material/Security';
-import Navbar from '../components/Navbar';
+// THE FIX: Removed Navbar import to prevent duplicate rendering
 
 export default function UserManagement() {
   const navigate = useNavigate();
@@ -52,12 +52,11 @@ export default function UserManagement() {
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', backgroundColor: '#f4f6f8' }}>
-      <Navbar />
+    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
+      {/* THE FIX: <Navbar /> removed entirely from this file */}
       
       <Box sx={{ p: { xs: 2, md: 5 }, maxWidth: 1200, mx: 'auto' }}>
         
-        {/* THE FIX: Hardcoded navigate('/owner-dashboard') instead of going back in browser history */}
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
           <Button 
             startIcon={<ArrowBackIcon />} 
@@ -66,15 +65,15 @@ export default function UserManagement() {
           >
             BACK
           </Button>
-          <Typography variant="h4" sx={{ fontWeight: '900', color: '#1a237e' }}>
+          <Typography variant="h4" sx={{ fontWeight: '900', color: 'primary.main' }}>
             ACCOUNT MANAGEMENT
           </Typography>
         </Box>
 
-        <Paper elevation={0} sx={{ borderRadius: 3, border: '1px solid #e0e0e0', overflow: 'hidden' }}>
+        <Paper elevation={0} sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider', overflow: 'hidden', bgcolor: 'background.paper' }}>
           <TableContainer>
             <Table>
-              <TableHead sx={{ bgcolor: '#f1f3f5' }}>
+              <TableHead sx={{ bgcolor: 'background.default' }}>
                 <TableRow>
                   <TableCell sx={{ fontWeight: 'bold', py: 2.5 }}>Name</TableCell>
                   <TableCell sx={{ fontWeight: 'bold', py: 2.5 }}>Email</TableCell>
@@ -95,8 +94,8 @@ export default function UserManagement() {
                     
                     <TableCell sx={{ py: 2.5 }}>
                       {user.role === 'owner' && <Chip icon={<SecurityIcon />} label="OWNER" color="secondary" size="small" sx={{ fontWeight: 'bold', px: 1 }} />}
-                      {(user.role === 'admin' || user.role === 'staff') && <Chip icon={<AdminPanelSettingsIcon />} label="STAFF" size="small" sx={{ fontWeight: 'bold', bgcolor: '#e0e0e0', px: 1 }} />}
-                      {user.role === 'user' && <Chip icon={<PersonIcon />} label="USER" size="small" sx={{ fontWeight: 'bold', bgcolor: '#f5f5f5', color: 'text.secondary', px: 1 }} />}
+                      {(user.role === 'admin' || user.role === 'staff') && <Chip icon={<AdminPanelSettingsIcon />} label="STAFF" size="small" sx={{ fontWeight: 'bold', bgcolor: 'action.selected', px: 1 }} />}
+                      {user.role === 'user' && <Chip icon={<PersonIcon />} label="USER" size="small" sx={{ fontWeight: 'bold', bgcolor: 'background.default', color: 'text.secondary', px: 1 }} />}
                     </TableCell>
                     
                     <TableCell align="right" sx={{ py: 2.5, pr: 4 }}>
@@ -111,7 +110,7 @@ export default function UserManagement() {
                         </Button>
                       ) : (
                         <Button 
-                          variant="contained" color="primary" size="small" sx={{ fontWeight: 'bold', bgcolor: '#1976d2', boxShadow: 'none' }}
+                          variant="contained" color="primary" size="small" sx={{ fontWeight: 'bold', boxShadow: 'none' }}
                           onClick={() => handleRoleChange(user._id, 'staff')}
                         >
                           PROMOTE TO ADMIN

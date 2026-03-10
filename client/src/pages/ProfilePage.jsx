@@ -4,7 +4,7 @@ import {
   Box, Paper, Typography, TextField, Button, Avatar,
   InputAdornment, IconButton, Snackbar, Alert, Divider, Stack
 } from '@mui/material';
-import Navbar from '../components/Navbar';
+// THE FIX: Removed Navbar import to prevent duplicate rendering
 
 // Icons
 import PersonIcon from '@mui/icons-material/Person';
@@ -61,31 +61,34 @@ export default function ProfilePage() {
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', backgroundColor: '#f4f6f8' }}>
-      <Navbar />
+    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
+      {/* THE FIX: <Navbar /> removed entirely from this file */}
       
       <Box sx={{ p: { xs: 2, md: 5 }, display: 'flex', justifyContent: 'center' }}>
         <Paper elevation={0} sx={{ 
           p: { xs: 3, md: 5 }, 
-          maxWidth: 800, // Widened to maximize the space 
+          maxWidth: 800, 
           width: '100%', 
           borderRadius: 4, 
-          border: '1px solid #e0e0e0',
+          border: '1px solid',
+          borderColor: 'divider',
+          bgcolor: 'background.paper'
         }}>
           
           {/* Header Section */}
           <Box sx={{ textAlign: 'center', mb: 4 }}>
             <Avatar sx={{ 
-              bgcolor: '#1a237e', 
+              bgcolor: 'primary.main', 
               width: 75, 
               height: 75, 
               margin: '0 auto 16px',
               fontSize: '2rem',
-              fontWeight: 'bold'
+              fontWeight: 'bold',
+              color: 'white'
             }}>
               {user.firstName ? user.firstName[0] : 'U'}{user.lastName ? user.lastName[0] : ''}
             </Avatar>
-            <Typography variant="h4" fontWeight="900" sx={{ color: '#1a237e', letterSpacing: '-0.5px' }}>
+            <Typography variant="h4" fontWeight="900" sx={{ color: 'primary.main', letterSpacing: '-0.5px' }}>
               MY PROFILE
             </Typography>
             <Typography variant="body1" color="text.secondary" sx={{ mt: 1 }}>
@@ -93,7 +96,7 @@ export default function ProfilePage() {
             </Typography>
           </Box>
 
-          <Divider sx={{ mb: 4 }} />
+          <Divider sx={{ mb: 4, borderColor: 'divider' }} />
 
           {/* Form Section using Stack for guaranteed full-width alignment */}
           <form onSubmit={handleUpdate}>
@@ -142,8 +145,8 @@ export default function ProfilePage() {
               />
               
               {/* ROW 4: Security Section */}
-              <Box sx={{ pt: 2, borderTop: '1px solid #eee' }}>
-                <Typography variant="subtitle2" sx={{ mb: 3, fontWeight: '800', color: '#1a237e', letterSpacing: '1px' }}>
+              <Box sx={{ pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
+                <Typography variant="subtitle2" sx={{ mb: 3, fontWeight: '800', color: 'primary.main', letterSpacing: '1px' }}>
                   SECURITY SETTINGS
                 </Typography>
                 
@@ -153,7 +156,7 @@ export default function ProfilePage() {
                     type={showPassword ? 'text' : 'password'}
                     value={user.password} onChange={handleChange}
                     helperText="Leave blank if you don't want to change it"
-                    sx={{ flexGrow: 1 }} // Ensures password bar takes up all remaining space
+                    sx={{ flexGrow: 1 }} 
                     InputProps={{
                       startAdornment: <InputAdornment position="start"><LockIcon color="action" /></InputAdornment>,
                       endAdornment: (
@@ -171,14 +174,14 @@ export default function ProfilePage() {
                     variant="contained"
                     startIcon={<SaveIcon />}
                     sx={{ 
-                      height: '56px', // Matches TextField height exactly
-                      minWidth: { xs: '100%', sm: '180px' }, // Fixes button size so it doesn't squish
-                      bgcolor: '#1a237e', 
+                      height: '56px', 
+                      minWidth: { xs: '100%', sm: '180px' }, 
+                      bgcolor: 'primary.main', 
                       borderRadius: 2,
                       fontWeight: '800',
                       fontSize: '1rem',
                       boxShadow: 'none',
-                      '&:hover': { bgcolor: '#0d1440', boxShadow: 'none' }
+                      '&:hover': { bgcolor: 'primary.dark', boxShadow: 'none' }
                     }}
                   >
                     SAVE

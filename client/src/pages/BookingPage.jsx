@@ -5,7 +5,7 @@ import {
   Box, Paper, Typography, Button, Snackbar, Alert, 
   Divider, IconButton, Stack, Card, CardMedia, List, ListItem, ListItemIcon, ListItemText
 } from '@mui/material';
-import Navbar from '../components/Navbar';
+// THE FIX: Removed Navbar import to prevent duplicate rendering
 
 // Icons
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
@@ -98,15 +98,14 @@ export default function BookingPage() {
 
   const imagesArray = getImagesArray(model);
 
-  // --- THE FIX: Calculate the earliest possible start date dynamically ---
   const today = dayjs();
   const availDate = model.nextAvailableDate ? dayjs(model.nextAvailableDate) : null;
   // If the vehicle is rented until a future date, the calendar locks until that date. Otherwise, starts today.
   const minStartDate = (availDate && availDate.isAfter(today)) ? availDate : today;
 
   return (
-    <Box sx={{ minHeight: '100vh', backgroundColor: '#f4f6f8', pb: 8 }}>
-      <Navbar />
+    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', pb: 8 }}>
+      {/* THE FIX: Navbar completely removed from this file */}
       
       <Box sx={{ maxWidth: 1300, mx: 'auto', p: { xs: 2, md: 4 } }}>
         
@@ -117,12 +116,12 @@ export default function BookingPage() {
             <Stack spacing={4}>
               
               {/* IMAGE CAROUSEL */}
-              <Card elevation={0} sx={{ position: 'relative', borderRadius: 4, border: '1px solid #e0e0e0', bgcolor: 'white', overflow: 'hidden' }}>
+              <Card elevation={0} sx={{ position: 'relative', borderRadius: 4, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper', overflow: 'hidden' }}>
                 
                 {imagesArray.length > 1 && (
                     <IconButton 
                         onClick={handlePrevImage} 
-                        sx={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', zIndex: 2, bgcolor: 'rgba(255,255,255,0.8)', '&:hover': { bgcolor: 'white' } }}
+                        sx={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', zIndex: 2, bgcolor: 'background.paper', '&:hover': { bgcolor: 'action.hover' } }}
                     >
                         <ArrowBackIosNewIcon />
                     </IconButton>
@@ -138,7 +137,7 @@ export default function BookingPage() {
                 {imagesArray.length > 1 && (
                     <IconButton 
                         onClick={handleNextImage} 
-                        sx={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', zIndex: 2, bgcolor: 'rgba(255,255,255,0.8)', '&:hover': { bgcolor: 'white' } }}
+                        sx={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', zIndex: 2, bgcolor: 'background.paper', '&:hover': { bgcolor: 'action.hover' } }}
                     >
                         <ArrowForwardIosIcon />
                     </IconButton>
@@ -146,12 +145,12 @@ export default function BookingPage() {
 
                 {/* THUMBNAIL INDICATORS */}
                 {imagesArray.length > 1 && (
-                    <Box sx={{ p: 1.5, display: 'flex', justifyContent: 'center', gap: 1.5, bgcolor: '#f1f3f5', borderTop: '1px solid #e0e0e0' }}>
+                    <Box sx={{ p: 1.5, display: 'flex', justifyContent: 'center', gap: 1.5, bgcolor: 'background.default', borderTop: '1px solid', borderColor: 'divider' }}>
                         {imagesArray.map((_, index) => (
                             <Box 
                                 key={index} 
                                 onClick={() => setActiveImageIndex(index)}
-                                sx={{ width: 12, height: 12, borderRadius: '50%', cursor: 'pointer', transition: 'background-color 0.2s', bgcolor: activeImageIndex === index ? '#1a237e' : '#bdbdbd', '&:hover': { bgcolor: '#5c6bc0' } }} 
+                                sx={{ width: 12, height: 12, borderRadius: '50%', cursor: 'pointer', transition: 'background-color 0.2s', bgcolor: activeImageIndex === index ? 'primary.main' : 'text.disabled', '&:hover': { bgcolor: 'primary.dark' } }} 
                             />
                         ))}
                     </Box>
@@ -159,8 +158,8 @@ export default function BookingPage() {
               </Card>
 
               {/* SPECIFICATIONS BOX */}
-              <Paper elevation={0} sx={{ p: 4, borderRadius: 4, border: '1px solid #e0e0e0', bgcolor: 'white' }}>
-                  <Typography variant="h5" fontWeight="900" gutterBottom sx={{ color: '#1a237e', display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Paper elevation={0} sx={{ p: 4, borderRadius: 4, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper' }}>
+                  <Typography variant="h5" fontWeight="900" gutterBottom sx={{ color: 'primary.main', display: 'flex', alignItems: 'center', gap: 1 }}>
                       <BuildCircleIcon fontSize="large" /> VEHICLE SPECIFICATIONS
                   </Typography>
                   <Divider sx={{ mb: 3 }} />
@@ -189,9 +188,9 @@ export default function BookingPage() {
 
           {/* --- RIGHT COLUMN: BOOKING FORM (40% Width & Sticky) --- */}
           <Box sx={{ width: { xs: '100%', md: '40%' }, position: 'sticky', top: 24 }}>
-            <Paper elevation={0} sx={{ p: { xs: 3, md: 4 }, borderRadius: 4, border: '1px solid #e0e0e0', bgcolor: 'white' }}>
+            <Paper elevation={0} sx={{ p: { xs: 3, md: 4 }, borderRadius: 4, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper' }}>
               
-              <Typography variant="h4" fontWeight="900" sx={{ color: '#1a237e', mb: 1 }}>
+              <Typography variant="h4" fontWeight="900" sx={{ color: 'primary.main', mb: 1 }}>
                 SECURE THIS VEHICLE
               </Typography>
               <Typography variant="h6" color="text.secondary" sx={{ mb: 4, fontWeight: 'bold' }}>
@@ -204,7 +203,7 @@ export default function BookingPage() {
                     This vehicle is currently rented. You may pre-book it starting from <strong>{new Date(model.nextAvailableDate).toLocaleDateString()}</strong>.
                  </Alert>
               ) : (
-                 <Alert severity="info" sx={{ mb: 4, bgcolor: '#e3f2fd', color: '#0d47a1', borderRadius: 2 }}>
+                 <Alert severity="info" sx={{ mb: 4, borderRadius: 2 }}>
                     Your request will be sent to the owner for approval. You will be notified of the status shortly.
                  </Alert>
               )}
@@ -220,7 +219,7 @@ export default function BookingPage() {
                       value={startDate}
                       onChange={(newValue) => setStartDate(newValue)}
                       minDate={minStartDate}
-                      sx={{ width: '100%', bgcolor: 'white' }}
+                      sx={{ width: '100%', bgcolor: 'background.default' }}
                     />
                     
                     <DatePicker
@@ -229,11 +228,11 @@ export default function BookingPage() {
                       onChange={(newValue) => setEndDate(newValue)}
                       minDate={startDate || minStartDate} 
                       disabled={!startDate} 
-                      sx={{ width: '100%', bgcolor: 'white' }}
+                      sx={{ width: '100%', bgcolor: 'background.default' }}
                     />
 
                     {startDate && endDate && (
-                        <Box sx={{ p: 2, bgcolor: '#f1f3f5', borderRadius: 2, borderLeft: '4px solid #1a237e' }}>
+                        <Box sx={{ p: 2, bgcolor: 'background.default', borderRadius: 2, borderLeft: '4px solid', borderColor: 'primary.main' }}>
                           <Typography variant="body1" color="text.primary" sx={{ fontWeight: 'bold' }}>
                               Total Duration: {dayjs(endDate).diff(dayjs(startDate), 'day') + 1} Day(s)
                           </Typography>
@@ -242,7 +241,7 @@ export default function BookingPage() {
 
                     <Button
                       type="submit" variant="contained" fullWidth startIcon={<CalendarMonthIcon />}
-                      sx={{ height: '60px', mt: 2, bgcolor: '#1a237e', borderRadius: 2, fontSize: '1.1rem', fontWeight: 'bold', '&:hover': { bgcolor: '#0d1440' }, transition: 'all 0.2s' }}
+                      sx={{ height: '60px', mt: 2, bgcolor: 'primary.main', borderRadius: 2, fontSize: '1.1rem', fontWeight: 'bold', '&:hover': { bgcolor: 'primary.dark' }, transition: 'all 0.2s' }}
                     >
                       SUBMIT RENTAL REQUEST
                     </Button>

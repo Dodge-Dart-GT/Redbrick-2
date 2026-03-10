@@ -4,10 +4,11 @@ export const getDesignTokens = (mode) => ({
   palette: {
     mode,
     primary: {
-      main: '#1a237e', // Red Brick Blue
+      // Light mode = Dark Red (#590016), Dark mode = Firebrick Red (#B22222)
+      main: mode === 'light' ? '#590016' : '#B22222', 
     },
     secondary: {
-      main: '#ff5252', // Red Brick Red
+      main: '#ff5252', 
     },
     background: {
       default: mode === 'light' ? '#f4f6f8' : '#121212',
@@ -17,14 +18,6 @@ export const getDesignTokens = (mode) => ({
       primary: mode === 'light' ? 'rgba(0, 0, 0, 0.87)' : '#ffffff',
       secondary: mode === 'light' ? 'rgba(0, 0, 0, 0.6)' : 'rgba(255, 255, 255, 0.7)',
     },
-  },
-  components: {
-    MuiPaper: {
-      styleOverrides: {
-        root: {
-          backgroundImage: 'none', // Prevents gray overlay in dark mode papers
-        },
-      },
-    },
-  },
+  }
+  // ... rest of components config
 });
