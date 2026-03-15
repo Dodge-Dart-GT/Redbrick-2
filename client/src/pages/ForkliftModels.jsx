@@ -81,7 +81,7 @@ export default function ForkliftModels() {
     return ['https://placehold.co/600x400?text=No+Vehicle+Image']; 
   };
 
-  // --- THE FIX: Correct Image Carousel Handlers ---
+  // --- Image Carousel Handlers ---
   const activeImagesArray = getModelImages(selectedModel);
 
   const handleNextImage = () => {
@@ -210,9 +210,19 @@ export default function ForkliftModels() {
                       </Box>
                   )}
 
-                  {/* Show indicator if model has multiple images */}
+                  {/* Show indicator if model has multiple images - FIXED TEXT COLOR */}
                   {getModelImages(model).length > 1 && (
-                      <Chip size="small" label={`+${getModelImages(model).length - 1} Photos`} sx={{ position: 'absolute', top: 12, right: 12, height: 20, fontSize: '0.65rem', fontWeight: 'bold', bgcolor: 'rgba(255,255,255,0.9)', color: 'text.primary', backdropFilter: 'blur(4px)' }} />
+                      <Chip 
+                        size="small" 
+                        label={`+${getModelImages(model).length - 1} Photos`} 
+                        sx={{ 
+                          position: 'absolute', top: 12, right: 12, height: 20, 
+                          fontSize: '0.65rem', fontWeight: 'bold', 
+                          bgcolor: 'rgba(255,255,255,0.9)', 
+                          color: '#000000', // Forces the text to be black regardless of theme
+                          backdropFilter: 'blur(4px)' 
+                        }} 
+                      />
                   )}
 
                   <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -271,7 +281,6 @@ export default function ForkliftModels() {
             
             <DialogContent dividers sx={{ p: 0, borderColor: 'divider' }}>
               
-              {/* THE FIX: Carousel Section */}
               <Box sx={{ position: 'relative', bgcolor: 'background.default', display: 'flex', flexDirection: 'column', alignItems: 'center', borderBottom: '1px solid', borderColor: 'divider' }}>
                 
                 {activeImagesArray.length > 1 && (
@@ -288,7 +297,7 @@ export default function ForkliftModels() {
                   </IconButton>
                 )}
 
-                {/* THE FIX: Image Indicators (Dots) */}
+                {/* Image Indicators (Dots) */}
                 {activeImagesArray.length > 1 && (
                   <Box sx={{ position: 'absolute', bottom: 12, display: 'flex', gap: 1, bgcolor: 'rgba(0,0,0,0.4)', px: 1.5, py: 0.5, borderRadius: 4 }}>
                     {activeImagesArray.map((_, index) => (
@@ -353,4 +362,4 @@ export default function ForkliftModels() {
       </Dialog>
     </Box>
   );
-}
+} 

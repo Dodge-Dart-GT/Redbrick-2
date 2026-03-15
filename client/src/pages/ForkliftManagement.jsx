@@ -507,7 +507,7 @@ export default function ForkliftManagement() {
               <Box sx={{ border: '2px dashed', borderColor: 'divider', borderRadius: 2, p: 2, textAlign: 'center', bgcolor: 'background.default' }}>
                 <input accept="image/*" style={{ display: 'none' }} id="add-file-upload" multiple type="file" onChange={handleAddFileChange} />
                 <label htmlFor="add-file-upload">
-                  <Button variant="contained" component="span" startIcon={<AddPhotoAlternateIcon />} sx={{ bgcolor: 'action.active', '&:hover': { bgcolor: 'action.hover' } }}>
+                  <Button variant="contained" component="span" startIcon={<AddPhotoAlternateIcon />} sx={{ bgcolor: '#424242', color: '#ffffff', '&:hover': { bgcolor: '#616161' } }}>
                     BROWSE LOCAL FILES
                   </Button>
                 </label>
@@ -571,7 +571,7 @@ export default function ForkliftManagement() {
                 <Box sx={{ border: '2px dashed', borderColor: 'divider', borderRadius: 2, p: 2, textAlign: 'center', bgcolor: 'background.default' }}>
                   <input accept="image/*" style={{ display: 'none' }} id="edit-file-upload" multiple type="file" onChange={handleEditFileChange} />
                   <label htmlFor="edit-file-upload">
-                    <Button variant="contained" component="span" startIcon={<AddPhotoAlternateIcon />} sx={{ bgcolor: 'action.active', '&:hover': { bgcolor: 'action.hover' } }}>
+                    <Button variant="contained" component="span" startIcon={<AddPhotoAlternateIcon />} sx={{ bgcolor: '#424242', color: '#ffffff', '&:hover': { bgcolor: '#616161' } }}>
                       BROWSE LOCAL FILES
                     </Button>
                   </label>

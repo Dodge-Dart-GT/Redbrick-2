@@ -6,7 +6,6 @@ import {
   TableContainer, TableHead, TableRow, CircularProgress, Chip, Alert, Button,
   FormControl, InputLabel, Select, MenuItem 
 } from '@mui/material';
-// THE FIX: Removed Navbar import to prevent double rendering
 
 import { 
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
@@ -15,6 +14,36 @@ import {
 import HandshakeIcon from '@mui/icons-material/Handshake';
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import PeopleIcon from '@mui/icons-material/People'; 
+
+// THE FIX: Custom Tooltip ensures text is readable in both modes 
+// and doesn't steal pointer events from the mouse.
+const CustomChartTooltip = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    return (
+      <Paper 
+        elevation={4} 
+        sx={{ 
+          p: 1.5, 
+          borderRadius: 2, 
+          border: '1px solid', 
+          borderColor: 'divider', 
+          bgcolor: 'background.paper',
+          pointerEvents: 'none' // Ensures tooltip doesn't block mouse movements
+        }}
+      >
+        <Typography variant="subtitle2" fontWeight="bold" sx={{ color: 'text.primary', mb: 0.5 }}>
+          {label}
+        </Typography>
+        {payload.map((entry, index) => (
+          <Typography key={index} variant="body2" sx={{ color: 'text.secondary', fontWeight: 'bold' }}>
+            {entry.name}: <Box component="span" sx={{ color: 'text.primary', ml: 0.5 }}>{entry.value}</Box>
+          </Typography>
+        ))}
+      </Paper>
+    );
+  }
+  return null;
+};
 
 export default function AnalyticsDashboard() {
   const navigate = useNavigate();
@@ -72,7 +101,6 @@ export default function AnalyticsDashboard() {
   if (errorMsg) {
     return (
         <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
-          {/* THE FIX: Navbar removed */}
           <Box sx={{ p: 5, maxWidth: 800, mx: 'auto', mt: 10, textAlign: 'center' }}>
               <Alert severity="error" sx={{ mb: 4, fontSize: '1.1rem', p: 3, borderRadius: 3 }}>
                   <strong>Dashboard Load Failed:</strong> {errorMsg}
@@ -87,8 +115,6 @@ export default function AnalyticsDashboard() {
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', pb: 8 }}>
-      {/* THE FIX: Navbar removed */}
-      
       <Box sx={{ p: { xs: 2, md: 5 }, maxWidth: 1400, mx: 'auto' }}>
         
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4, flexWrap: 'wrap', gap: 2 }}>
@@ -149,7 +175,8 @@ export default function AnalyticsDashboard() {
                   <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.2} />
                   <XAxis dataKey="name" axisLine={false} tickLine={false} stroke="currentColor" />
                   <YAxis stroke="currentColor" axisLine={false} tickLine={false} />
-                  <Tooltip contentStyle={{ borderRadius: '8px', backgroundColor: 'inherit', borderColor: 'var(--mui-palette-divider)' }} />
+                  {/* THE FIX: Replaced default Tooltip */}
+                  <Tooltip content={<CustomChartTooltip />} wrapperStyle={{ pointerEvents: 'none' }} />
                   <Line type="monotone" dataKey="rentals" name="Total Rentals" stroke="#1565c0" strokeWidth={4} activeDot={{ r: 8 }} />
                 </LineChart>
               </ResponsiveContainer>
@@ -165,7 +192,8 @@ export default function AnalyticsDashboard() {
                   <CartesianGrid strokeDasharray="3 3" horizontal={false} strokeOpacity={0.2} />
                   <XAxis type="number" axisLine={false} tickLine={false} stroke="currentColor" />
                   <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} width={100} stroke="currentColor" />
-                  <Tooltip cursor={{ fill: 'rgba(128,128,128,0.1)' }} contentStyle={{ borderRadius: '8px', backgroundColor: 'inherit', borderColor: 'var(--mui-palette-divider)' }} />
+                  {/* THE FIX: Replaced default Tooltip */}
+                  <Tooltip content={<CustomChartTooltip />} cursor={{ fill: 'rgba(128,128,128,0.1)' }} wrapperStyle={{ pointerEvents: 'none' }} />
                   <Bar dataKey="rentals" name="Times Rented" fill="#ff9800" radius={[0, 4, 4, 0]} barSize={30} />
                 </BarChart>
               </ResponsiveContainer>
