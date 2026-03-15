@@ -23,21 +23,30 @@ import BuildCircleIcon from '@mui/icons-material/BuildCircle';
 import RateReviewIcon from '@mui/icons-material/RateReview'; 
 import StarIcon from '@mui/icons-material/Star';
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera'; 
+import PersonIcon from '@mui/icons-material/Person'; 
+import AssignmentIcon from '@mui/icons-material/Assignment'; 
 
-export default function CustomerDashboard() {
+export default function AdminDashboard() {
   const navigate = useNavigate();
-  const [myRentals, setMyRentals] = useState([]);
-  const [stats, setStats] = useState({ requested: 0, active: 0, completed: 0, due: 0 });
+  const [rentals, setRentals] = useState([]);
+  const [stats, setStats] = useState({ requested: 0, active: 0, completed: 0, total: 0 });
 
   // Details Modal State
   const [openModal, setOpenModal] = useState(false);
   const [selectedReq, setSelectedReq] = useState(null);
 
-  // Cancel Booking Modal State
+  // --- ADMIN MANAGEMENT MODALS ---
+  const [confirmCompleteModal, setConfirmCompleteModal] = useState(false);
+  const [rentalToComplete, setRentalToComplete] = useState(null);
+
+  const [rejectModal, setRejectModal] = useState(false);
+  const [rentalToReject, setRentalToReject] = useState(null);
+  const [rejectionReason, setRejectionReason] = useState('');
+
+  // --- CUSTOMER ACTION MODALS (Kept for Admin's personal rentals) ---
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [rentalToCancel, setRentalToCancel] = useState(null);
 
-  // Review Modal State
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [reviewTarget, setReviewTarget] = useState(null);
   const [rating, setRating] = useState(0);
@@ -51,27 +60,30 @@ export default function CustomerDashboard() {
   const [searchTerm, setSearchTerm] = useState("");
   const ITEMS_PER_PAGE = 5; 
 
+  // Store logged-in user ID to conditionally show customer actions
+  const currentUserInfo = JSON.parse(localStorage.getItem('userInfo'));
+
   useEffect(() => {
-    fetchMyRentals();
+    fetchAllRentals();
   }, [navigate]);
 
-  const fetchMyRentals = async () => {
+  const fetchAllRentals = async () => {
     const userInfo = JSON.parse(localStorage.getItem('userInfo'));
     if (!userInfo) { navigate('/login'); return; }
 
     try {
-      const { data } = await axios.get(`/api/rentals/myrequests/${userInfo._id}`, {
+      const { data } = await axios.get(`/api/rentals/all`, {
           headers: { Authorization: `Bearer ${userInfo.token}` }
       });
       
       const sortedData = data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-      setMyRentals(sortedData);
+      setRentals(sortedData);
 
       setStats({
         requested: sortedData.filter(r => r.status === 'Pending').length,
         active: sortedData.filter(r => r.status === 'Active').length,
         completed: sortedData.filter(r => r.status === 'Completed').length,
-        due: sortedData.filter(r => r.status === 'Rejected' || r.status === 'Cancelled').length 
+        total: sortedData.length 
       });
     } catch (error) {
       console.error("Error fetching rentals:", error);
@@ -81,7 +93,7 @@ export default function CustomerDashboard() {
   const getStatusColor = (status) => {
     switch(status) {
       case 'Active': return 'success';
-      case 'Pending': return 'primary';
+      case 'Pending': return 'warning';
       case 'Rejected': 
       case 'Cancelled': return 'error'; 
       case 'Completed': return 'default';
@@ -115,16 +127,73 @@ export default function CustomerDashboard() {
     return { label: 'Returned On Time', color: '#1565c0', bg: '#e3f2fd' }; 
   };
 
-  const filteredRentals = myRentals.filter(r => 
+  const filteredRentals = rentals.filter(r => 
     (r.forklift?.model || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
     (r.forklift?.make || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (r._id || '').toLowerCase().includes(searchTerm.toLowerCase())
+    (r._id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (r.user?.firstName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (r.user?.lastName || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const pageCount = Math.max(1, Math.ceil(filteredRentals.length / ITEMS_PER_PAGE));
   const displayedRentals = filteredRentals.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
 
-  // --- CANCEL BOOKING HANDLERS ---
+
+  // ==========================================
+  // ADMIN ACTION HANDLERS
+  // ==========================================
+  const handleAccept = async (id) => {
+    try {
+      await axios.put(`/api/rentals/${id}`, { status: 'Active' });
+      setOpenModal(false); 
+      fetchAllRentals();
+      setSnackbar({ open: true, message: 'Booking Approved successfully.', severity: 'success' });
+    } catch (error) {
+      setSnackbar({ open: true, message: 'Error approving booking.', severity: 'error' });
+    }
+  };
+
+  const handleOpenReject = (id) => {
+    setRentalToReject(id);
+    setRejectionReason(''); 
+    setRejectModal(true);
+  };
+
+  const executeRejectRental = async () => {
+    try {
+      await axios.put(`/api/rentals/${rentalToReject}`, { 
+        status: 'Rejected',
+        rejectionReason: rejectionReason || 'Declined by Administrator.' 
+      });
+      fetchAllRentals();
+      setRejectModal(false);
+      setOpenModal(false);
+      setSnackbar({ open: true, message: 'Booking Rejected successfully.', severity: 'info' });
+    } catch (error) {
+      setSnackbar({ open: true, message: 'Error rejecting booking.', severity: 'error' });
+    }
+  };
+
+  const handleOpenComplete = (req) => {
+    setRentalToComplete(req);
+    setConfirmCompleteModal(true);
+  };
+
+  const executeCompleteRental = async () => {
+    try {
+      await axios.put(`/api/rentals/${rentalToComplete._id}`, { status: 'Completed' });
+      setConfirmCompleteModal(false);
+      fetchAllRentals();
+      setSnackbar({ open: true, message: 'Rental marked as Completed.', severity: 'success' });
+    } catch (error) {
+      setSnackbar({ open: true, message: 'Error completing rental.', severity: 'error' });
+    }
+  };
+
+
+  // ==========================================
+  // CUSTOMER ACTION HANDLERS (Retained Logic)
+  // ==========================================
   const handleOpenCancel = (rental) => {
     setRentalToCancel(rental);
     setCancelModalOpen(true);
@@ -140,7 +209,7 @@ export default function CustomerDashboard() {
       setSnackbar({ open: true, message: 'Booking successfully cancelled.', severity: 'info' });
       setCancelModalOpen(false);
       if (openModal) setOpenModal(false); 
-      fetchMyRentals(); 
+      fetchAllRentals(); 
     } catch (error) {
       setSnackbar({ open: true, message: 'Failed to cancel booking.', severity: 'error' });
     }
@@ -204,7 +273,7 @@ export default function CustomerDashboard() {
 
       setSnackbar({ open: true, message: 'Review successfully submitted! Thank you.', severity: 'success' });
       setReviewModalOpen(false);
-      fetchMyRentals(); 
+      fetchAllRentals(); 
     } catch (error) {
       setSnackbar({ open: true, message: error.response?.data?.message || 'Failed to submit review.', severity: 'error' });
     }
@@ -212,20 +281,25 @@ export default function CustomerDashboard() {
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', pb: 8 }}>
-      {/* NO NAVBAR HERE - Called globally in App.jsx */}
       
       <Container maxWidth="xl" sx={{ pt: { xs: 2, md: 5 } }}>
+        
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4, flexWrap: 'wrap', gap: 2 }}>
+          <Typography variant="h4" fontWeight="900" sx={{ color: 'primary.main' }}>
+            ADMIN COMMAND CENTER
+          </Typography>
+        </Box>
+
         <Grid container spacing={4}>
-          
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <Grid container spacing={3}>
               {[
-                { label: 'Pending Requests', val: stats.requested, col: '#1976d2', icon: <ForkliftIcon /> },
-                { label: 'Active Rentals', val: stats.active, col: '#2e7d32', icon: <CheckCircleIcon /> },
+                { label: 'Pending Requests', val: stats.requested, col: '#ed6c02', icon: <NotificationsActiveIcon /> },
+                { label: 'Active Fleet', val: stats.active, col: '#2e7d32', icon: <ForkliftIcon /> },
                 { label: 'Completed Jobs', val: stats.completed, col: '#455a64', icon: <DoneAllIcon /> },
-                { label: 'Rejected / Cancelled', val: stats.due, col: '#d32f2f', icon: <WarningIcon /> },
+                { label: 'Total Records', val: stats.total, col: '#1a237e', icon: <AssignmentIcon /> },
               ].map((kpi, i) => (
-                <Grid item xs={12} sm={6} md={3} key={i}>
+                <Grid size={{ xs: 12, sm: 6, md: 3 }} key={i}>
                   <Paper elevation={0} sx={{ p: 3, borderRadius: 4, border: '1px solid', borderColor: 'divider', display: 'flex', alignItems: 'center', gap: 3, bgcolor: 'background.paper', transition: 'transform 0.2s', '&:hover': { transform: 'translateY(-4px)', boxShadow: 4 } }}>
                     <Avatar sx={{ bgcolor: `${kpi.col}15`, color: kpi.col, width: 60, height: 60 }}>{kpi.icon}</Avatar>
                     <Box>
@@ -238,12 +312,12 @@ export default function CustomerDashboard() {
             </Grid>
           </Grid>
 
-          <Grid item xs={12} md={8}>
-            <Paper elevation={0} sx={{ p: 4, borderRadius: 4, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper', height: '100%' }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4, flexWrap: 'wrap', gap: 2 }}>
-                <Typography variant="h5" fontWeight="900" color="text.primary">RENTAL AGREEMENTS</Typography>
+          <Grid size={{ xs: 12, md: 8 }} sx={{ minWidth: 0 }}>
+            <Paper elevation={0} sx={{ p: 3, borderRadius: 4, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper', display: 'flex', flexDirection: 'column' }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
+                <Typography variant="h5" fontWeight="900" color="text.primary">GLOBAL RENTALS</Typography>
                 <TextField 
-                  placeholder="Search Models or ID..." 
+                  placeholder="Search Customer or Model..." 
                   size="small" 
                   value={searchTerm} 
                   onChange={(e) => {setSearchTerm(e.target.value); setPage(1);}}
@@ -251,50 +325,59 @@ export default function CustomerDashboard() {
                 />
               </Box>
 
-              <TableContainer sx={{ minHeight: 400 }}>
-                <Table sx={{ minWidth: 700 }}>
-                  <TableHead sx={{ bgcolor: 'background.default' }}>
-                    <TableRow>
-                      <TableCell sx={{ fontWeight: 'bold', py: 2 }}>REF ID</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold', py: 2 }}>EQUIPMENT</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold', py: 2 }}>DATES</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold', py: 2 }}>STATUS</TableCell>
-                      <TableCell align="center" sx={{ fontWeight: 'bold', py: 2 }}>ACTIONS</TableCell>
+              {/* THE FIX: Mathematical lock. 5 rows * 76px = 380px. + 50px header = 430px exactly. */}
+              <TableContainer sx={{ height: 430, overflowX: 'auto' }}>
+                {/* THE FIX: Increased minWidth to 900 to give the columns enough physical pixels to breathe */}
+                <Table sx={{ minWidth: 900, width: '100%', tableLayout: 'fixed' }}>
+                  <TableHead sx={{ bgcolor: 'background.default', position: 'sticky', top: 0, zIndex: 1 }}>
+                    <TableRow sx={{ height: 50 }}>
+                      {/* THE FIX: Redistributed widths to give Status and Actions more space */}
+                      <TableCell sx={{ fontWeight: 'bold', py: 1.5, width: '10%' }}>REF ID</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold', py: 1.5, width: '22%' }}>CUSTOMER</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold', py: 1.5, width: '24%' }}>EQUIPMENT</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold', py: 1.5, width: '18%' }}>DATES</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold', py: 1.5, width: '14%' }}>STATUS</TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 'bold', py: 1.5, width: '12%' }}>ACTIONS</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {displayedRentals.length > 0 ? (
                       displayedRentals.map((row) => {
                         const returnData = getReturnStatus(row.endDate, row.actualReturnDate);
+                        const isMyPersonalRental = row.user?._id === currentUserInfo?._id;
 
                         return (
-                          <TableRow key={row._id} hover>
-                            <TableCell sx={{ fontFamily: 'monospace', color: 'text.secondary', py: 2.5, borderBottom: '1px solid', borderColor: 'divider' }}>
+                          <TableRow key={row._id} hover sx={{ height: 76 }}>
+                            <TableCell sx={{ fontFamily: 'monospace', color: 'text.secondary', py: 1.5, borderBottom: '1px solid', borderColor: 'divider' }}>
                               #{row._id.slice(-6).toUpperCase()}
                             </TableCell>
                             
-                            <TableCell sx={{ py: 2.5, borderBottom: '1px solid', borderColor: 'divider' }}>
+                            <TableCell sx={{ py: 1.5, borderBottom: '1px solid', borderColor: 'divider' }}>
+                              <Typography variant="body2" fontWeight="bold" noWrap>{row.user?.firstName} {row.user?.lastName}</Typography>
+                              <Typography variant="caption" color="text.secondary" noWrap display="block">{row.user?.email}</Typography>
+                            </TableCell>
+
+                            <TableCell sx={{ py: 1.5, borderBottom: '1px solid', borderColor: 'divider' }}>
                               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                                   <Avatar 
                                       src={row.forklift?.images?.[0] || row.forklift?.image} 
                                       variant="rounded" 
-                                      sx={{ width: 55, height: 55, border: '1px solid', borderColor: 'divider' }}
+                                      sx={{ width: 36, height: 36, border: '1px solid', borderColor: 'divider' }}
                                   >
-                                      <ForkliftIcon />
+                                      <ForkliftIcon fontSize="small" />
                                   </Avatar>
-                                  <Box>
-                                      <Typography variant="body1" fontWeight="bold">{row.forklift?.make || 'Unknown Make'}</Typography>
-                                      <Typography variant="body2" color="text.secondary">{row.forklift?.model || 'Vehicle Unavailable'}</Typography>
+                                  <Box sx={{ minWidth: 0 }}>
+                                      <Typography variant="body2" fontWeight="bold" noWrap>{row.forklift?.model || 'Vehicle Unavailable'}</Typography>
                                   </Box>
                               </Box>
                             </TableCell>
 
-                            <TableCell sx={{ py: 2.5, borderBottom: '1px solid', borderColor: 'divider' }}>
-                              <Typography variant="body2" fontWeight="bold" color="text.primary">
+                            <TableCell sx={{ py: 1.5, borderBottom: '1px solid', borderColor: 'divider' }}>
+                              <Typography variant="caption" fontWeight="bold" color="text.primary" display="block">
                                 Out: {row.startDate ? new Date(row.startDate).toLocaleDateString() : 'N/A'}
                               </Typography>
                               
-                              <Typography variant="body2" fontWeight="bold" color={row.status === 'Active' ? 'error.main' : 'text.secondary'}>
+                              <Typography variant="caption" fontWeight="bold" color={row.status === 'Active' ? 'error.main' : 'text.secondary'} display="block">
                                 {row.status === 'Completed' ? 'In: ' : 'Due: '} 
                                 {row.status === 'Completed' && row.actualReturnDate 
                                     ? new Date(row.actualReturnDate).toLocaleDateString() 
@@ -302,34 +385,43 @@ export default function CustomerDashboard() {
                               </Typography>
 
                               {row.status === 'Completed' && returnData && (
-                                  <Chip label={returnData.label} size="small" sx={{ mt: 0.5, bgcolor: returnData.bg, color: returnData.color, fontWeight: 'bold', fontSize: '0.65rem', height: 20 }} />
+                                  <Chip label={returnData.label} size="small" sx={{ mt: 0.2, bgcolor: returnData.bg, color: returnData.color, fontWeight: 'bold', fontSize: '0.6rem', height: 16 }} />
                               )}
                             </TableCell>
                             
-                            <TableCell sx={{ py: 2.5, borderBottom: '1px solid', borderColor: 'divider' }}>
-                              <Chip label={row.status} color={getStatusColor(row.status)} sx={{ fontWeight: 'bold', px: 1 }} />
+                            <TableCell sx={{ py: 1.5, borderBottom: '1px solid', borderColor: 'divider' }}>
+                              {/* Width constraint removed here so the chip naturally embraces the text length */}
+                              <Chip label={row.status} color={getStatusColor(row.status)} size="small" sx={{ fontWeight: 'bold', minWidth: 85 }} />
                             </TableCell>
                             
-                            <TableCell align="center" sx={{ py: 2.5, borderBottom: '1px solid', borderColor: 'divider' }}>
-                              <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
-                                <Tooltip title="View Details">
-                                  <IconButton onClick={() => {setSelectedReq(row); setOpenModal(true);}} sx={{ bgcolor: 'action.hover' }}>
-                                    <VisibilityIcon color="primary"/>
+                            <TableCell align="center" sx={{ py: 1.5, borderBottom: '1px solid', borderColor: 'divider' }}>
+                              <Box sx={{ display: 'flex', justifyContent: 'center', gap: 0.5 }}>
+                                <Tooltip title="View Details / Manage">
+                                  <IconButton size="small" onClick={() => {setSelectedReq(row); setOpenModal(true);}} sx={{ bgcolor: 'action.hover' }}>
+                                    <VisibilityIcon color="primary" fontSize="small" />
                                   </IconButton>
                                 </Tooltip>
                                 
-                                {row.status === 'Pending' && (
-                                  <Tooltip title="Cancel Request">
-                                    <IconButton onClick={() => handleOpenCancel(row)} sx={{ bgcolor: 'error.main', color: 'white', '&:hover': { bgcolor: 'error.dark' } }}>
-                                      <CancelIcon />
+                                {row.status === 'Active' && (
+                                  <Tooltip title="Mark as Returned">
+                                    <IconButton size="small" color="success" onClick={() => handleOpenComplete(row)} sx={{ bgcolor: 'background.default', '&:hover': { bgcolor: 'success.main', color: 'white' } }}>
+                                      <DoneAllIcon fontSize="small" />
                                     </IconButton>
                                   </Tooltip>
                                 )}
 
-                                {row.status === 'Completed' && (
+                                {isMyPersonalRental && row.status === 'Pending' && (
+                                  <Tooltip title="Cancel My Request">
+                                    <IconButton size="small" onClick={() => handleOpenCancel(row)} sx={{ bgcolor: 'error.main', color: 'white', '&:hover': { bgcolor: 'error.dark' } }}>
+                                      <CancelIcon fontSize="small" />
+                                    </IconButton>
+                                  </Tooltip>
+                                )}
+
+                                {isMyPersonalRental && row.status === 'Completed' && (
                                   <Tooltip title="Leave a Review">
-                                    <IconButton onClick={() => handleOpenReview(row)} sx={{ bgcolor: 'success.main', color: 'white', '&:hover': { bgcolor: 'success.dark' } }}>
-                                      <RateReviewIcon />
+                                    <IconButton size="small" onClick={() => handleOpenReview(row)} sx={{ bgcolor: 'success.main', color: 'white', '&:hover': { bgcolor: 'success.dark' } }}>
+                                      <RateReviewIcon fontSize="small" />
                                     </IconButton>
                                   </Tooltip>
                                 )}
@@ -339,8 +431,9 @@ export default function CustomerDashboard() {
                         )
                       })
                     ) : (
-                      <TableRow>
-                        <TableCell colSpan={5} align="center" sx={{ py: 8 }}>
+                      // Matches the exact 380px content area
+                      <TableRow sx={{ height: 380 }}>
+                        <TableCell colSpan={6} align="center" sx={{ borderBottom: 'none' }}>
                             <Typography color="text.secondary" variant="h6">No rentals found matching your criteria.</Typography>
                         </TableCell>
                       </TableRow>
@@ -350,50 +443,38 @@ export default function CustomerDashboard() {
               </TableContainer>
 
               {pageCount > 1 && (
-                <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4, pt: 3, borderTop: '1px solid', borderColor: 'divider' }}>
-                  <Pagination count={pageCount} page={page} onChange={(e, v) => setPage(v)} color="primary" size="large" shape="rounded" />
+                <Box sx={{ display: 'flex', justifyContent: 'center', mt: 'auto', pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
+                  <Pagination count={pageCount} page={page} onChange={(e, v) => setPage(v)} color="primary" size="medium" shape="rounded" />
                 </Box>
               )}
             </Paper>
           </Grid>
 
-          <Grid item xs={12} md={4}>
-            
-            <Paper elevation={0} sx={{ p: 4, borderRadius: 4, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper', mb: 4 }}>
+          <Grid size={{ xs: 12, md: 4 }}>
+            <Paper elevation={0} sx={{ p: 3, borderRadius: 4, border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper', display: 'flex', flexDirection: 'column' }}>
               <Typography variant="h6" fontWeight="900" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.primary' }}>
                 <NotificationsActiveIcon color="warning" /> RECENT ALERTS
               </Typography>
               <Divider sx={{ mb: 2 }} />
               <List sx={{ 
-                maxHeight: 350, 
+                height: 400,
                 overflow: 'auto', 
                 '&::-webkit-scrollbar': { width: '6px' },
                 '&::-webkit-scrollbar-thumb': { backgroundColor: '#ccc', borderRadius: '10px' }
               }}>
-                {myRentals.slice(0, 8).map((req, i) => (
-                  <ListItem key={i} sx={{ px: 0, py: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
+                {rentals.slice(0, 15).map((req, i) => (
+                  <ListItem key={i} sx={{ px: 0, py: 1.5, borderBottom: '1px solid', borderColor: 'divider' }}>
                     <ListItemIcon sx={{ minWidth: 40 }}>{getAlertIcon(req.status)}</ListItemIcon>
                     <ListItemText 
                       primary={`Request for ${req.forklift?.model || 'Vehicle'}`} 
                       secondary={`${req.status} - ${new Date(req.createdAt).toLocaleDateString()}`}
-                      primaryTypographyProps={{ variant: 'body1', fontWeight: 'bold', color: 'text.primary' }}
-                      secondaryTypographyProps={{ variant: 'body2', mt: 0.5 }}
+                      primaryTypographyProps={{ variant: 'body2', fontWeight: 'bold', color: 'text.primary' }}
+                      secondaryTypographyProps={{ variant: 'caption', mt: 0.5 }}
                     />
                   </ListItem>
                 ))}
-                {myRentals.length === 0 && <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>No recent alerts.</Typography>}
+                {rentals.length === 0 && <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>No recent alerts.</Typography>}
               </List>
-            </Paper>
-
-            <Paper elevation={0} sx={{ p: 5, borderRadius: 4, bgcolor: 'primary.main', color: 'white', textAlign: 'center' }}>
-              <Typography variant="h5" fontWeight="900" mb={1}>NEW PROJECT?</Typography>
-              <Typography variant="body1" sx={{ opacity: 0.8, mb: 4 }}>Explore our heavy-duty fleet to find the perfect equipment.</Typography>
-              <Box sx={{ bgcolor: 'rgba(255,255,255,0.1)', p: 3, borderRadius: '50%', mb: 4, display: 'inline-flex' }}>
-                 <ForkliftIcon sx={{ fontSize: 70, opacity: 0.9 }} />
-              </Box>
-              <Button variant="contained" size="large" fullWidth sx={{ bgcolor: 'white', color: 'primary.main', fontWeight: 'bold', py: 1.5, '&:hover': { bgcolor: '#f1f1f1' } }} onClick={() => navigate('/models')}>
-                BROWSE CATALOG
-              </Button>
             </Paper>
           </Grid>
         </Grid>
@@ -486,6 +567,48 @@ export default function CustomerDashboard() {
         </DialogActions>
       </Dialog>
 
+      {/* --- ADMIN: CONFIRM COMPLETE MODAL --- */}
+      <Dialog open={confirmCompleteModal} onClose={() => setConfirmCompleteModal(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { bgcolor: 'background.paper', borderRadius: 3 } }}>
+        <DialogTitle sx={{ fontWeight: 'bold', bgcolor: 'success.main', color: 'white', textAlign: 'center' }}>
+          Confirm Equipment Return
+        </DialogTitle>
+        <DialogContent dividers sx={{ p: 4, textAlign: 'center', borderColor: 'divider' }}>
+          <DoneAllIcon sx={{ fontSize: 70, color: 'success.main', mb: 2 }} />
+          <Typography variant="h6" fontWeight="900" gutterBottom>Has this vehicle been returned?</Typography>
+          <Typography variant="body2" color="text.secondary">
+            Marking this agreement as Completed will immediately return the <strong>{rentalToComplete?.forklift?.make} {rentalToComplete?.forklift?.model}</strong> back to the available inventory pool for future bookings.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ p: 3, justifyContent: 'center', gap: 2, bgcolor: 'background.default' }}>
+          <Button onClick={() => setConfirmCompleteModal(false)} sx={{ fontWeight: 'bold', color: 'text.secondary' }}>Cancel</Button>
+          <Button onClick={executeCompleteRental} variant="contained" color="success" sx={{ fontWeight: 'bold', px: 4 }}>Mark Completed</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* --- ADMIN: REJECT MODAL --- */}
+      <Dialog open={rejectModal} onClose={() => setRejectModal(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { bgcolor: 'background.paper', borderRadius: 3 } }}>
+        <DialogTitle sx={{ fontWeight: 'bold', bgcolor: 'error.main', color: 'white' }}>
+          Decline Booking Request
+        </DialogTitle>
+        <DialogContent dividers sx={{ p: 4, borderColor: 'divider' }}>
+          <Typography variant="body1" color="text.secondary" gutterBottom fontWeight="500">
+            Please provide a reason for declining this request. This message will be sent directly to the customer's tracking dashboard.
+          </Typography>
+          <TextField
+            fullWidth multiline rows={4} variant="outlined"
+            placeholder="e.g., The requested equipment is currently out of service for maintenance..."
+            value={rejectionReason}
+            onChange={(e) => setRejectionReason(e.target.value)}
+            sx={{ mt: 3, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+          />
+        </DialogContent>
+        <DialogActions sx={{ p: 3, bgcolor: 'background.default' }}>
+          <Button onClick={() => setRejectModal(false)} sx={{ fontWeight: 'bold', color: 'text.secondary', mr: 2 }}>Cancel</Button>
+          <Button onClick={executeRejectRental} variant="contained" color="error" sx={{ fontWeight: 'bold', px: 4 }}>Confirm Rejection</Button>
+        </DialogActions>
+      </Dialog>
+
+
       {/* --- AGREEMENT DETAILS MODAL --- */}
       <Dialog open={openModal} onClose={() => setOpenModal(false)} fullWidth maxWidth="md" PaperProps={{ sx: { bgcolor: 'background.paper', borderRadius: 3 } }}>
         <DialogTitle sx={{ fontWeight: 'bold', bgcolor: 'primary.main', color: 'white', py: 2.5 }}>
@@ -495,7 +618,7 @@ export default function CustomerDashboard() {
           {selectedReq && (
             <Grid container spacing={4}>
               
-              <Grid item xs={12} md={8} sx={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+              <Grid size={{ xs: 12, md: 8 }} sx={{ display: 'flex', gap: 4, alignItems: 'center' }}>
                 <Avatar 
                     src={selectedReq.forklift?.images?.[0] || selectedReq.forklift?.image} 
                     variant="rounded" 
@@ -516,16 +639,43 @@ export default function CustomerDashboard() {
                 </Box>
               </Grid>
 
-              <Grid item xs={12} md={4} sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: { xs: 'flex-start', md: 'flex-end' } }}>
+              <Grid size={{ xs: 12, md: 4 }} sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: { xs: 'flex-start', md: 'flex-end' } }}>
                 <Typography variant="subtitle2" color="text.secondary" fontWeight="bold" gutterBottom>
                   CURRENT STATUS
                 </Typography> 
                 <Chip label={selectedReq.status} color={getStatusColor(selectedReq.status)} sx={{ fontWeight: 'bold', px: 3, py: 3, fontSize: '1.2rem', borderRadius: 2 }} />
               </Grid>
 
-              <Grid item xs={12}><Divider /></Grid>
+              <Grid size={{ xs: 12 }}><Divider /></Grid>
 
-              <Grid item xs={12} md={6}>
+              {/* ADMIN: CUSTOMER INFORMATION BLOCK */}
+              <Grid size={{ xs: 12 }}>
+                <Typography variant="subtitle1" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, fontWeight: 'bold' }}>
+                  <PersonIcon /> CUSTOMER INFORMATION
+                </Typography>
+                <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 4, bgcolor: 'background.paper' }}>
+                    <Grid container spacing={3}>
+                        <Grid size={{ xs: 12, sm: 6 }}>
+                            <Typography variant="caption" color="text.secondary" fontWeight="bold">Full Name</Typography>
+                            <Typography variant="h6" fontWeight="bold">{selectedReq.user?.firstName} {selectedReq.user?.lastName}</Typography>
+                        </Grid>
+                        <Grid size={{ xs: 12, sm: 6 }}>
+                            <Typography variant="caption" color="text.secondary" fontWeight="bold">Contact Email</Typography>
+                            <Typography variant="h6" fontWeight="bold">{selectedReq.user?.email}</Typography>
+                        </Grid>
+                        <Grid size={{ xs: 12, sm: 6 }}>
+                            <Typography variant="caption" color="text.secondary" fontWeight="bold">Phone Number</Typography>
+                            <Typography variant="body1" fontWeight="bold">{selectedReq.user?.phone || 'Not Provided'}</Typography>
+                        </Grid>
+                        <Grid size={{ xs: 12, sm: 6 }}>
+                            <Typography variant="caption" color="text.secondary" fontWeight="bold">Address</Typography>
+                            <Typography variant="body1" fontWeight="bold">{selectedReq.user?.address || 'Not Provided'}</Typography>
+                        </Grid>
+                    </Grid>
+                </Paper>
+              </Grid>
+
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant="subtitle1" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, fontWeight: 'bold' }}>
                   <CalendarMonthIcon /> RENTAL TIMEFRAME
                 </Typography>
@@ -565,25 +715,25 @@ export default function CustomerDashboard() {
                 </Paper>
               </Grid>
 
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant="subtitle1" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, fontWeight: 'bold' }}>
                   <BuildCircleIcon /> VEHICLE SPECIFICATIONS
                 </Typography>
                 <Paper elevation={0} sx={{ p: 4, border: '1px solid', borderColor: 'divider', borderRadius: 4, bgcolor: 'background.default', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                    <Grid container spacing={3}>
-                      <Grid item xs={6}>
+                      <Grid size={{ xs: 6 }}>
                           <Typography variant="caption" color="text.secondary" fontWeight="bold" textTransform="uppercase">Lift Capacity</Typography>
                           <Typography variant="body1" fontWeight="bold">{selectedReq.forklift?.capacity ? `${selectedReq.forklift.capacity} lbs` : 'N/A'}</Typography>
                       </Grid>
-                      <Grid item xs={6}>
+                      <Grid size={{ xs: 6 }}>
                           <Typography variant="caption" color="text.secondary" fontWeight="bold" textTransform="uppercase">Horsepower</Typography>
                           <Typography variant="body1" fontWeight="bold">{selectedReq.forklift?.power ? `${selectedReq.forklift.power} HP` : 'N/A'}</Typography>
                       </Grid>
-                      <Grid item xs={6}>
+                      <Grid size={{ xs: 6 }}>
                           <Typography variant="caption" color="text.secondary" fontWeight="bold" textTransform="uppercase">Torque Rating</Typography>
                           <Typography variant="body1" fontWeight="bold">{selectedReq.forklift?.torque || 'N/A'}</Typography>
                       </Grid>
-                      <Grid item xs={6}>
+                      <Grid size={{ xs: 6 }}>
                           <Typography variant="caption" color="text.secondary" fontWeight="bold" textTransform="uppercase">Fuel Type</Typography>
                           <Typography variant="body1" fontWeight="bold">{selectedReq.forklift?.fuel || 'N/A'}</Typography>
                       </Grid>
@@ -591,22 +741,21 @@ export default function CustomerDashboard() {
                 </Paper>
               </Grid>
 
+              {/* ADMIN ACTION BLOCK */}
               {selectedReq.status === 'Pending' && (
-                <Grid item xs={12}>
-                  <Paper elevation={0} sx={{ p: 3, mt: 2, bgcolor: 'error.light', color: 'white', borderRadius: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Box>
-                        <Typography variant="body1" fontWeight="bold">Change of Plans?</Typography>
-                        <Typography variant="body2" sx={{ opacity: 0.9 }}>You can safely cancel this booking before it is approved.</Typography>
-                      </Box>
-                      <Button variant="contained" color="error" startIcon={<CancelIcon />} onClick={() => handleOpenCancel(selectedReq)} sx={{ fontWeight: 'bold', boxShadow: 'none', border: '1px solid white' }}>
-                        CANCEL BOOKING
-                      </Button>
-                  </Paper>
-                </Grid>
+                  <Grid size={{ xs: 12 }}>
+                      <Paper elevation={0} sx={{ p: 3, mt: 2, bgcolor: 'action.hover', borderRadius: 4, border: '1px solid', borderColor: 'info.main', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <Typography variant="body1" fontWeight="bold" color="info.main">Requires Administrative Action</Typography>
+                          <Box sx={{ display: 'flex', gap: 2 }}>
+                              <Button variant="outlined" color="error" startIcon={<CancelIcon />} onClick={() => handleOpenReject(selectedReq._id)} sx={{ fontWeight: 'bold', bgcolor: 'background.paper', '&:hover': { bgcolor: 'error.main', color: 'white' } }}>REJECT REQUEST</Button>
+                              <Button variant="contained" color="success" startIcon={<CheckCircleIcon />} onClick={() => handleAccept(selectedReq._id)} sx={{ fontWeight: 'bold' }}>APPROVE BOOKING</Button>
+                          </Box>
+                      </Paper>
+                  </Grid>
               )}
 
               {selectedReq.status === 'Rejected' && selectedReq.rejectionReason && (
-                <Grid item xs={12}>
+                <Grid size={{ xs: 12 }}>
                   <Typography variant="subtitle1" color="error.main" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, mt: 2, fontWeight: 'bold' }}>
                     <CancelIcon /> REJECTION DETAILS
                   </Typography>
