@@ -6,7 +6,7 @@ const reviewSchema = mongoose.Schema({
   name: { type: String, required: true },
   rating: { type: Number, required: true },
   comment: { type: String, required: true },
-  images: [String] 
+  images: [{ type: String }] // Array of image URLs for the review
 }, { timestamps: true });
 
 // 2. Update the main Forklift schema
@@ -18,10 +18,13 @@ const forkliftSchema = mongoose.Schema({
   torque: { type: String },
   fuel: { type: String },
   status: { type: String, default: 'Available' },
-  image: { type: String }, 
-  images: [String], 
   
-  // --- THE FIX: ADDED PERMANENT RETURN DATE FIELD ---
+  // Primary display image
+  image: { type: String }, 
+  
+  // Full gallery of images
+  images: [{ type: String }], 
+  
   nextAvailableDate: { type: Date }, 
 
   reviews: [reviewSchema], 

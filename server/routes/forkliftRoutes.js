@@ -79,17 +79,18 @@ router.put('/:id', protect, adminOrOwner, async (req, res) => {
         return res.status(403).json({ message: 'Security Block: Cannot manually change status. Vehicle must be returned via Customer Agreements.' });
     }
 
-    forklift.make = req.body.make || forklift.make;
-    forklift.model = req.body.model || forklift.model;
-    forklift.capacity = req.body.capacity || forklift.capacity;
-    forklift.power = req.body.power || forklift.power;
-    forklift.torque = req.body.torque || forklift.torque;
-    forklift.fuel = req.body.fuel || forklift.fuel;
+    // THE FIX: Strict undefined checking ensures empty strings and empty arrays are saved!
+    if (req.body.make !== undefined) forklift.make = req.body.make;
+    if (req.body.model !== undefined) forklift.model = req.body.model;
+    if (req.body.capacity !== undefined) forklift.capacity = req.body.capacity;
+    if (req.body.power !== undefined) forklift.power = req.body.power;
+    if (req.body.torque !== undefined) forklift.torque = req.body.torque;
+    if (req.body.fuel !== undefined) forklift.fuel = req.body.fuel;
+    if (req.body.status !== undefined) forklift.status = req.body.status;
     
-    if (req.body.status) forklift.status = req.body.status;
-    
-    forklift.image = req.body.image || forklift.image;
-    forklift.images = req.body.images || forklift.images;
+    // Explicitly update image and images arrays
+    if (req.body.image !== undefined) forklift.image = req.body.image;
+    if (req.body.images !== undefined) forklift.images = req.body.images;
 
     const updatedForklift = await forklift.save();
     res.json(updatedForklift);
