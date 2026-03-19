@@ -29,7 +29,6 @@ export default function Navbar({ currentMode, toggleMode }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [user, setUser] = useState(null);
 
-  // Ghost Logout Fix: Updates Navbar state whenever the page changes
   useEffect(() => {
     const userInfo = localStorage.getItem('userInfo');
     if (userInfo) {
@@ -42,14 +41,27 @@ export default function Navbar({ currentMode, toggleMode }) {
   const handleLogout = () => {
     localStorage.removeItem('userInfo');
     setUser(null); 
-    navigate('/models');
+    navigate('/'); // 🟢 FIXED: Redirect to homepage on logout
   };
 
-  const menuItems = [];
+  const handleLogoClick = () => {
+    if (user) {
+        const role = user.role?.toLowerCase()?.trim() || 'user';
+        if (role === 'owner' || role === 'admin' || role === 'staff') {
+            navigate('/models');
+        } else {
+            navigate('/');
+        }
+    } else {
+        navigate('/');
+    }
+  };
+
+  // 🟢 LOGIC: Define which menu items to show
+  let menuItems = [];
 
   if (user) {
     const role = user.role?.toLowerCase()?.trim() || 'user';
-    
     if (role === 'owner') {
       menuItems.push({ text: 'Command Center', path: '/owner-dashboard', icon: <DashboardIcon /> });
       menuItems.push({ text: 'Fleet Management', path: '/inventory', icon: <LocalShippingIcon /> });
@@ -65,14 +77,19 @@ export default function Navbar({ currentMode, toggleMode }) {
     menuItems.push({ text: 'Browse Models', path: '/models', icon: <LocalShippingIcon /> });
     menuItems.push({ text: 'My Profile', path: '/profile', icon: <AccountCircleIcon /> });
   } else {
-    menuItems.push({ text: 'Browse Models', path: '/models', icon: <LocalShippingIcon /> });
+    // 🟢 FIXED: Hide "Browse Models" if we are on the Homepage
+    if (location.pathname !== '/') {
+        menuItems.push({ text: 'Browse Models', path: '/models', icon: <LocalShippingIcon /> });
+    }
   }
+
+  // 🟢 FIXED: Condition to hide Log In button when on Auth pages
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/signup';
   
   const drawerContent = (
     <Box sx={{ width: 280, bgcolor: 'background.default', height: '100%', display: 'flex', flexDirection: 'column' }}>
-      
       <Box sx={{ p: 3, bgcolor: 'primary.main', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, cursor: 'pointer' }} onClick={() => { handleLogoClick(); setDrawerOpen(false); }}>
           <Avatar src="/RedBrickLogo.png" sx={{ width: 40, height: 40, bgcolor: 'white', p: 0.5 }} />
           <Typography variant="h6" fontWeight="900">RED BRICK</Typography>
         </Box>
@@ -87,43 +104,25 @@ export default function Navbar({ currentMode, toggleMode }) {
                 <ListItemIcon sx={{ color: currentMode === 'dark' ? '#ffca28' : 'primary.main' }}>
                     {currentMode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
                 </ListItemIcon>
-                <ListItemText primary={`${currentMode === 'light' ? 'Dark' : 'Light'} Mode`} primaryTypographyProps={{ fontWeight: 'bold', color: 'text.primary' }} />
+                <ListItemText primary={`${currentMode === 'light' ? 'Dark' : 'Light'} Mode`} />
             </ListItemButton>
         </ListItem>
-        
-        <Divider sx={{ my: 1, borderColor: 'divider' }} />
-        
+        <Divider sx={{ my: 1 }} />
         {menuItems.map((item) => (
           <ListItem disablePadding key={item.text} sx={{ mb: 1, mx: 1 }}>
-            <ListItemButton 
-              onClick={() => { navigate(item.path); setDrawerOpen(false); }}
-              sx={{ 
-                borderRadius: 2,
-                bgcolor: location.pathname === item.path ? (currentMode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(89, 0, 22, 0.08)') : 'transparent',
-                // Highlight active text
-                color: location.pathname === item.path ? (currentMode === 'dark' ? '#ffcdd2' : 'primary.main') : 'text.primary',
-                '&:hover': { bgcolor: currentMode === 'dark' ? 'rgba(255,255,255,0.05)' : 'action.hover' }
-              }}
-            >
-              <ListItemIcon sx={{ color: location.pathname === item.path ? (currentMode === 'dark' ? '#ffcdd2' : 'primary.main') : 'action.active' }}>
-                {item.icon}
-              </ListItemIcon>
-              <ListItemText primary={item.text} primaryTypographyProps={{ fontWeight: 'bold' }} />
+            <ListItemButton onClick={() => { navigate(item.path); setDrawerOpen(false); }}>
+              <ListItemIcon>{item.icon}</ListItemIcon>
+              <ListItemText primary={item.text} />
             </ListItemButton>
           </ListItem>
         ))}
       </List>
 
-      <Divider sx={{ borderColor: 'divider' }} />
       <Box sx={{ p: 2 }}>
         {user ? (
-            <Button fullWidth variant="outlined" color="error" startIcon={<LogoutIcon />} onClick={handleLogout} sx={{ fontWeight: 'bold', borderWidth: 2 }}>
-                LOG OUT
-            </Button>
-        ) : (
-            <Button fullWidth variant="contained" startIcon={<LoginIcon />} onClick={() => { navigate('/login'); setDrawerOpen(false); }} sx={{ bgcolor: 'primary.main', fontWeight: 'bold' }}>
-                LOG IN / SIGN UP
-            </Button>
+            <Button fullWidth variant="outlined" color="error" startIcon={<LogoutIcon />} onClick={handleLogout}>LOG OUT</Button>
+        ) : !isAuthPage && (
+            <Button fullWidth variant="contained" startIcon={<LoginIcon />} onClick={() => { navigate('/login'); setDrawerOpen(false); }}>LOG IN</Button>
         )}
       </Box>
     </Box>
@@ -131,71 +130,35 @@ export default function Navbar({ currentMode, toggleMode }) {
 
   return (
     <>
-      <AppBar position="sticky" elevation={0} sx={{ bgcolor: 'primary.main', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-        <Toolbar sx={{ justifyContent: 'space-between', px: { xs: 2, md: 4 }, py: 1 }}>
-          
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, cursor: 'pointer' }} onClick={() => navigate('/models')}>
+      <AppBar position="sticky" elevation={0} sx={{ bgcolor: 'primary.main' }}>
+        <Toolbar sx={{ justifyContent: 'space-between', px: { xs: 2, md: 4 } }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, cursor: 'pointer' }} onClick={handleLogoClick}>
             <Avatar src="/RedBrickLogo.png" sx={{ width: 45, height: 45, bgcolor: 'white', p: 0.5 }} />
-            <Typography variant="h5" fontWeight="900" sx={{ letterSpacing: 1, display: { xs: 'none', sm: 'block' }, color: 'white' }}>
-              RED BRICK
-            </Typography>
+            <Typography variant="h5" fontWeight="900" sx={{ color: 'white' }}>RED BRICK</Typography>
           </Box>
 
           {!isMobile ? (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               {menuItems.map((item) => (
-                <Button 
-                  key={item.text} onClick={() => navigate(item.path)}
-                  sx={{ 
-                    // Active link color is a soft pinkish-white to contrast the red
-                    color: location.pathname === item.path ? '#ffcdd2' : 'white', 
-                    fontWeight: 'bold', px: 2,
-                    borderBottom: location.pathname === item.path ? '3px solid #ffcdd2' : '3px solid transparent',
-                    borderRadius: 0, '&:hover': { bgcolor: 'rgba(255,255,255,0.05)' }
-                  }}
-                >
-                  {item.text}
-                </Button>
+                <Button key={item.text} onClick={() => navigate(item.path)} sx={{ color: 'white', fontWeight: 'bold' }}>{item.text}</Button>
               ))}
               <Box sx={{ ml: 2, pl: 2, borderLeft: '1px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', gap: 2 }}>
-                
                 <IconButton onClick={toggleMode} sx={{ color: 'white' }}>
                   {currentMode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
                 </IconButton>
-
                 {user ? (
-                    <>
-                        <Typography variant="body2" sx={{ opacity: 0.8, color: 'white' }}>
-                        Hello, <strong>{user.firstName || 'User'}</strong>
-                        </Typography>
-                        <IconButton onClick={handleLogout} sx={{ color: '#ffcdd2', '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.2)' } }}>
-                        <LogoutIcon />
-                        </IconButton>
-                    </>
-                ) : (
-                    <Button variant="outlined" onClick={() => navigate('/login')} sx={{ color: 'white', borderColor: 'rgba(255,255,255,0.5)', fontWeight: 'bold', '&:hover': { borderColor: 'white', bgcolor: 'rgba(255,255,255,0.1)' } }}>
-                        Log In
-                    </Button>
+                    <IconButton onClick={handleLogout} sx={{ color: '#ffcdd2' }}><LogoutIcon /></IconButton>
+                ) : !isAuthPage && (
+                    <Button variant="outlined" onClick={() => navigate('/login')} sx={{ color: 'white', borderColor: 'white' }}>Log In</Button>
                 )}
-
               </Box>
             </Box>
           ) : (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-              <IconButton onClick={toggleMode} sx={{ color: 'white' }}>
-                  {currentMode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
-              </IconButton>
-              <IconButton edge="end" color="inherit" onClick={() => setDrawerOpen(true)} sx={{ p: 0.5, color: 'white' }}>
-                <MenuIcon fontSize="large" />
-              </IconButton>
-            </Box>
+            <IconButton color="inherit" onClick={() => setDrawerOpen(true)}><MenuIcon /></IconButton>
           )}
         </Toolbar>
       </AppBar>
-
-      <Drawer anchor="right" open={drawerOpen} onClose={() => setDrawerOpen(false)} PaperProps={{ sx: { borderTopLeftRadius: 16, borderBottomLeftRadius: 16 } }}>
-        {drawerContent}
-      </Drawer>
+      <Drawer anchor="right" open={drawerOpen} onClose={() => setDrawerOpen(false)}>{drawerContent}</Drawer>
     </>
   );
 }

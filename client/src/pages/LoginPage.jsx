@@ -24,7 +24,6 @@ const BackgroundBox = styled(Box)({
   position: 'relative'
 });
 
-// THE FIX: Overlay now darkens slightly more in dark mode
 const Overlay = styled(Box)(({ theme }) => ({
   position: 'absolute',
   top: 0,
@@ -34,7 +33,6 @@ const Overlay = styled(Box)(({ theme }) => ({
   backgroundColor: theme.palette.mode === 'dark' ? 'rgba(0, 0, 0, 0.85)' : 'rgba(0, 0, 0, 0.65)',
 }));
 
-// THE FIX: LoginPaper now uses the theme's background.paper instead of hardcoded white
 const LoginPaper = styled(Paper)(({ theme }) => ({
   padding: '40px',
   width: '100%',
@@ -51,7 +49,9 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation(); 
   const recaptchaRef = useRef();
-  const [isLogin, setIsLogin] = useState(true);
+  
+  // Detection Logic: Starts as signup if the URL is /signup
+  const [isLogin, setIsLogin] = useState(location.pathname !== '/signup');
   const [loading, setLoading] = useState(false);
   
   const [notification, setNotification] = useState({ open: false, message: '', severity: 'info' });
@@ -69,6 +69,15 @@ export default function LoginPage() {
   const [validations, setValidations] = useState({
     hasUpper: false, hasLower: false, hasNumber: false, hasSpecial: false, hasLength: false
   });
+
+  // THE FIX: Listen for URL changes and swap the form state automatically
+  useEffect(() => {
+    if (location.pathname === '/signup') {
+        setIsLogin(false);
+    } else {
+        setIsLogin(true);
+    }
+  }, [location.pathname]);
 
   useEffect(() => {
     setValidations({
@@ -88,6 +97,17 @@ export default function LoginPage() {
   };
 
   const handleCloseNotify = () => setNotification({ ...notification, open: false });
+
+  // Update URL when user toggles manually within the page
+  const toggleForm = () => {
+    if (isLogin) {
+        navigate('/signup');
+    } else {
+        navigate('/login');
+    }
+    setCaptchaToken(null);
+    if(recaptchaRef.current) recaptchaRef.current.reset();
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -132,7 +152,7 @@ export default function LoginPage() {
         }, 1000);
       } else {
         handleNotify("Account created! You can now log in.", "success");
-        setIsLogin(true);
+        navigate('/login');
         setPassword('');
         setConfirmPassword('');
         setCaptchaToken(null);
@@ -184,8 +204,7 @@ export default function LoginPage() {
           </Typography>
         </Box>
 
-        {/* THE FIX: Changed from hardcoded color to primary.main */}
-        <Typography variant="h5" fontWeight="900" sx={{ mb: 1, color: 'primary.main' }}>
+        <Typography variant="h5" fontWeight="900" sx={{ mb: 1, color: '#B22222' }}>
           {isLogin ? 'Welcome Back' : 'Create an Account'}
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
@@ -230,9 +249,8 @@ export default function LoginPage() {
           {!isLogin && (
             <>
               <TextField fullWidth label="Confirm Password" margin="dense" type="password" required size="small" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} error={confirmPassword.length > 0 && !doPasswordsMatch} />
-              {/* THE FIX: background color uses background.default */}
               <Box sx={{ mt: 2, p: 1.5, bgcolor: 'background.default', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
-                <Typography variant="caption" fontWeight="bold" color="primary">Password Requirements:</Typography>
+                <Typography variant="caption" fontWeight="bold" color="#B22222">Password Requirements:</Typography>
                 <List dense sx={{ mt: 0.5 }}>
                   <ValidationItem valid={validations.hasLength} text="Minimum 8 characters" />
                   <ValidationItem valid={validations.hasUpper} text="Include Uppercase (A-Z)" />
@@ -253,11 +271,15 @@ export default function LoginPage() {
             />
           </Box>
 
-          {/* THE FIX: Uses primary.main for background color */}
           <Button 
             type="submit" fullWidth variant="contained" size="large"
             disabled={loading || !captchaToken || (!isLogin && (!isPasswordValid || !doPasswordsMatch))}
-            sx={{ mt: 4, mb: 2, py: 1.5, fontWeight: 'bold', bgcolor: 'primary.main', color: 'white', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)' }}
+            sx={{ 
+                mt: 4, mb: 2, py: 1.5, fontWeight: 'bold', 
+                bgcolor: '#B22222', color: 'white', 
+                borderRadius: '8px', boxShadow: '0 4px 12px rgba(178, 34, 34, 0.4)',
+                '&:hover': { bgcolor: '#8b1a1a' }
+            }}
           >
             {loading ? <CircularProgress size={24} color="inherit" /> : (isLogin ? 'SIGN IN' : 'CREATE ACCOUNT')}
           </Button>
@@ -268,7 +290,8 @@ export default function LoginPage() {
             {isLogin ? "New to Red Brick? " : "Already have an account? "}
             <Link 
               component="button" variant="body2" fontWeight="900"
-              onClick={() => { setIsLogin(!isLogin); setCaptchaToken(null); if(recaptchaRef.current) recaptchaRef.current.reset(); }}
+              sx={{ color: '#B22222', textDecoration: 'none' }}
+              onClick={toggleForm}
             >
               {isLogin ? 'Sign Up' : 'Log In'}
             </Link>
@@ -283,4 +306,4 @@ export default function LoginPage() {
       </Snackbar>
     </BackgroundBox>
   );
-} 
+}
