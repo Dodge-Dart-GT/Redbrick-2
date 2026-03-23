@@ -7,6 +7,7 @@ import {
   ListItemIcon, ListItemText, Button, Dialog, DialogTitle, DialogContent, 
   DialogActions, Divider, TextField, Pagination, Avatar, Stack 
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 
 // Icons
 import ForkliftIcon from '@mui/icons-material/Forklift'; 
@@ -22,6 +23,13 @@ import WarningIcon from '@mui/icons-material/Warning';
 import BuildCircleIcon from '@mui/icons-material/BuildCircle';
 
 export default function OwnerDashboard() {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
+  const primaryColor = isDark ? '#B22222' : '#590016';
+  const primaryHover = isDark ? '#8b1a1a' : '#3a000e';
+  const pageBgColor = isDark ? '#121212' : theme.palette.background.default;
+  const paperBgColor = isDark ? '#1e1e1e' : theme.palette.background.paper;
+
   const navigate = useNavigate();
   const [requests, setRequests] = useState([]);
   const [stats, setStats] = useState({ pending: 0, active: 0, completed: 0, total: 0 });
@@ -153,20 +161,20 @@ export default function OwnerDashboard() {
   const displayedRequests = filteredRequests.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', pb: 8 }}>
+    <Box sx={{ minHeight: '100vh', bgcolor: pageBgColor, pb: 8 }}>
       <Box sx={{ p: { xs: 2, md: 5 }, maxWidth: 1500, mx: 'auto' }}>
         
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4, flexWrap: 'wrap', gap: 2 }}>
-          <Typography variant="h4" fontWeight="900" sx={{ color: 'primary.main' }}>
+          <Typography variant="h4" fontWeight="900" sx={{ color: primaryColor }}>
             OWNER COMMAND CENTER
           </Typography>
           <Box sx={{ display: 'flex', gap: 2 }}>
             {userRole === 'owner' && (
-              <Button variant="outlined" color="primary" onClick={() => navigate('/users')} sx={{ fontWeight: 'bold', borderWidth: 2, '&:hover': { borderWidth: 2 } }}>
+              <Button variant="outlined" onClick={() => navigate('/users')} sx={{ fontWeight: 'bold', borderWidth: 2, color: primaryColor, borderColor: primaryColor, '&:hover': { borderWidth: 2, borderColor: primaryHover, bgcolor: `${primaryColor}11` } }}>
                 MANAGE ACCOUNTS
               </Button>
             )}
-            <Button variant="contained" sx={{ bgcolor: 'primary.main', fontWeight: 'bold', '&:hover': { bgcolor: 'primary.dark' } }} onClick={() => navigate('/inventory')}>
+            <Button variant="contained" sx={{ bgcolor: primaryColor, color: 'white', fontWeight: 'bold', '&:hover': { bgcolor: primaryHover } }} onClick={() => navigate('/inventory')}>
               MANAGE FLEET
             </Button>
           </Box>
@@ -180,7 +188,7 @@ export default function OwnerDashboard() {
             { label: 'Total Logs', val: stats.total, col: '#1a237e', icon: <AssignmentIcon /> },
           ].map((kpi, i) => (
             <Grid item xs={12} sm={6} md={3} key={i}>
-              <Paper elevation={0} sx={{ p: 3, borderRadius: 4, border: '1px solid', borderColor: 'divider', display: 'flex', alignItems: 'center', gap: 3, bgcolor: 'background.paper' }}>
+              <Paper elevation={0} sx={{ p: 3, borderRadius: 4, border: '1px solid', borderColor: 'divider', display: 'flex', alignItems: 'center', gap: 3, bgcolor: paperBgColor }}>
                 <Avatar sx={{ bgcolor: `${kpi.col}15`, color: kpi.col, width: 60, height: 60 }}>{kpi.icon}</Avatar>
                 <Box>
                   <Typography variant="h4" sx={{ fontWeight: 900 }}>{kpi.val}</Typography>
@@ -193,9 +201,9 @@ export default function OwnerDashboard() {
 
         <Grid container spacing={4}>
           <Grid item xs={12} md={8}>
-            <Paper elevation={0} sx={{ p: 4, borderRadius: 4, border: '1px solid', borderColor: 'divider', height: '100%', bgcolor: 'background.paper' }}>
+            <Paper elevation={0} sx={{ p: 4, borderRadius: 4, border: '1px solid', borderColor: 'divider', height: '100%', bgcolor: paperBgColor }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4, flexWrap: 'wrap', gap: 2 }}>
-                <Typography variant="h5" fontWeight="900" color="primary.main">GLOBAL AGREEMENTS</Typography>
+                <Typography variant="h5" fontWeight="900" color={primaryColor}>GLOBAL AGREEMENTS</Typography>
                 <TextField 
                   placeholder="Search Customer, Model, or ID..." 
                   size="small" 
@@ -207,7 +215,7 @@ export default function OwnerDashboard() {
               
               <TableContainer sx={{ minHeight: 400 }}>
                 <Table sx={{ minWidth: 700, whiteSpace: 'nowrap' }}>
-                  <TableHead sx={{ bgcolor: 'background.default' }}>
+                  <TableHead sx={{ bgcolor: isDark ? '#2a2a2a' : 'background.default' }}>
                     <TableRow>
                       <TableCell sx={{ fontWeight: 'bold', py: 2 }}>CUSTOMER</TableCell>
                       <TableCell sx={{ fontWeight: 'bold', py: 2 }}>FORKLIFT</TableCell>
@@ -253,7 +261,6 @@ export default function OwnerDashboard() {
                           )}
                         </TableCell>
 
-                        {/* THE FIX: Fixed width added to the Chip so they are perfectly aligned */}
                         <TableCell sx={{ py: 2 }}>
                           <Chip 
                             label={row.status} 
@@ -265,7 +272,7 @@ export default function OwnerDashboard() {
                         <TableCell align="center" sx={{ py: 2 }}>
                           <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
                             <Tooltip title="View Details / Manage">
-                              <IconButton color="primary" onClick={() => { setSelectedReq(row); setOpenModal(true); }} sx={{ bgcolor: 'background.default', '&:hover': { bgcolor: 'action.hover' } }}>
+                              <IconButton onClick={() => { setSelectedReq(row); setOpenModal(true); }} sx={{ color: primaryColor, bgcolor: 'background.default', '&:hover': { bgcolor: 'action.hover' } }}>
                                 <VisibilityIcon />
                               </IconButton>
                             </Tooltip>
@@ -287,15 +294,15 @@ export default function OwnerDashboard() {
 
               {pageCount > 1 && (
                 <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4, pt: 3, borderTop: '1px solid', borderColor: 'divider' }}>
-                  <Pagination count={pageCount} page={page} onChange={(e, v) => setPage(v)} color="primary" size="large" shape="rounded" />
+                  <Pagination count={pageCount} page={page} onChange={(e, v) => setPage(v)} size="large" shape="rounded" sx={{ '& .MuiPaginationItem-root.Mui-selected': { bgcolor: primaryColor, color: 'white' } }} />
                 </Box>
               )}
             </Paper>
           </Grid>
 
           <Grid item xs={12} md={4}>
-            <Paper elevation={0} sx={{ p: 4, borderRadius: 4, border: '1px solid', borderColor: 'divider', height: '100%', bgcolor: 'background.paper' }}>
-              <Typography variant="h6" fontWeight="900" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'primary.main' }}>
+            <Paper elevation={0} sx={{ p: 4, borderRadius: 4, border: '1px solid', borderColor: 'divider', height: '100%', bgcolor: paperBgColor }}>
+              <Typography variant="h6" fontWeight="900" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, color: primaryColor }}>
                 <NotificationsActiveIcon color="warning" /> RECENT ACTIVITY
               </Typography>
               <Divider sx={{ mb: 2 }} />
@@ -326,15 +333,15 @@ export default function OwnerDashboard() {
       </Box>
 
       {/* --- MODAL 1: FULL DETAILS & MANAGEMENT --- */}
-      <Dialog open={openModal} onClose={() => setOpenModal(false)} maxWidth="md" fullWidth PaperProps={{ sx: { bgcolor: 'background.paper', borderRadius: 3 } }}>
-        <DialogTitle sx={{ fontWeight: 'bold', bgcolor: 'primary.main', color: 'white', py: 2.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <Dialog open={openModal} onClose={() => setOpenModal(false)} maxWidth="md" fullWidth PaperProps={{ sx: { bgcolor: paperBgColor, borderRadius: 3 } }}>
+        <DialogTitle sx={{ fontWeight: 'bold', bgcolor: primaryColor, color: 'white', py: 2.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Box>
               <Typography variant="h6" fontWeight="bold">AGREEMENT REVIEW</Typography>
               <Typography variant="caption">Ref ID: #{selectedReq?._id.toUpperCase()}</Typography>
           </Box>
           <Chip label={selectedReq?.status} color={getStatusColor(selectedReq?.status)} sx={{ fontWeight: 'bold', width: 120, fontSize: '1rem', bgcolor: 'rgba(255,255,255,0.2)', color: 'white' }} />
         </DialogTitle>
-        <DialogContent dividers sx={{ p: { xs: 3, md: 5 }, bgcolor: 'background.default', borderColor: 'divider' }}>
+        <DialogContent dividers sx={{ p: { xs: 3, md: 5 }, bgcolor: pageBgColor, borderColor: 'divider' }}>
           {selectedReq && (
             <Grid container spacing={4}>
               
@@ -342,7 +349,7 @@ export default function OwnerDashboard() {
                 <Typography variant="subtitle1" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, fontWeight: 'bold' }}>
                   <PersonIcon /> CUSTOMER INFORMATION
                 </Typography>
-                <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 4, bgcolor: 'background.paper' }}>
+                <Paper elevation={0} sx={{ p: 3, border: '1px solid', borderColor: 'divider', borderRadius: 4, bgcolor: paperBgColor }}>
                     <Grid container spacing={3}>
                         <Grid item xs={12} sm={6}>
                             <Typography variant="caption" color="text.secondary" fontWeight="bold">Full Name</Typography>
@@ -368,7 +375,7 @@ export default function OwnerDashboard() {
                 <Typography variant="subtitle1" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, fontWeight: 'bold' }}>
                   <CalendarMonthIcon /> RENTAL TIMEFRAME
                 </Typography>
-                <Paper elevation={0} sx={{ p: 4, border: '1px solid', borderColor: 'divider', borderRadius: 4, bgcolor: 'background.paper', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                <Paper elevation={0} sx={{ p: 4, border: '1px solid', borderColor: 'divider', borderRadius: 4, bgcolor: paperBgColor, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                     <Stack direction="row" spacing={4} justifyContent="space-between">
                         <Box>
                             <Typography variant="caption" color="text.secondary" fontWeight="bold" textTransform="uppercase">Start Date</Typography>
@@ -398,7 +405,7 @@ export default function OwnerDashboard() {
                     {!selectedReq.actualReturnDate && (
                       <Box sx={{ mt: 3, pt: 3, borderTop: '2px dashed', borderColor: 'divider', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <Typography variant="body1" fontWeight="bold" color="text.secondary">Total Duration:</Typography>
-                          <Typography variant="h5" color="primary.main" fontWeight="900">{calculateDays(selectedReq.startDate, selectedReq.endDate)} Day(s)</Typography>
+                          <Typography variant="h5" color={primaryColor} fontWeight="900">{calculateDays(selectedReq.startDate, selectedReq.endDate)} Day(s)</Typography>
                       </Box>
                     )}
                 </Paper>
@@ -408,13 +415,13 @@ export default function OwnerDashboard() {
                 <Typography variant="subtitle1" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, fontWeight: 'bold' }}>
                   <BuildCircleIcon /> EQUIPMENT REQUESTED
                 </Typography>
-                <Paper elevation={0} sx={{ p: 4, border: '1px solid', borderColor: 'divider', borderRadius: 4, bgcolor: 'background.paper', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                <Paper elevation={0} sx={{ p: 4, border: '1px solid', borderColor: 'divider', borderRadius: 4, bgcolor: paperBgColor, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, mb: 3 }}>
                        <Avatar src={selectedReq.forklift?.images?.[0] || selectedReq.forklift?.image} variant="rounded" sx={{ width: 80, height: 80, border: '1px solid', borderColor: 'divider', bgcolor: 'background.default' }}>
                            <ForkliftIcon fontSize="large" color="action" />
                        </Avatar>
                        <Box>
-                           <Typography variant="h6" fontWeight="900" color="primary.main">{selectedReq.forklift?.make} {selectedReq.forklift?.model}</Typography>
+                           <Typography variant="h6" fontWeight="900" color={primaryColor}>{selectedReq.forklift?.make} {selectedReq.forklift?.model}</Typography>
                        </Box>
                    </Box>
                    <Grid container spacing={2}>
@@ -440,10 +447,10 @@ export default function OwnerDashboard() {
 
               {selectedReq.status === 'Pending' && (
                   <Grid item xs={12}>
-                      <Paper elevation={0} sx={{ p: 3, mt: 2, bgcolor: 'action.hover', borderRadius: 4, border: '1px solid', borderColor: 'info.main', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <Typography variant="body1" fontWeight="bold" color="info.main">Requires Administrative Action</Typography>
+                      <Paper elevation={0} sx={{ p: 3, mt: 2, bgcolor: isDark ? '#2e1f11' : '#fff3e0', borderRadius: 4, border: '1px solid', borderColor: 'warning.main', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <Typography variant="body1" fontWeight="bold" color="warning.main">Requires Administrative Action</Typography>
                           <Box sx={{ display: 'flex', gap: 2 }}>
-                              <Button variant="outlined" color="error" startIcon={<CancelIcon />} onClick={() => handleOpenReject(selectedReq._id)} sx={{ fontWeight: 'bold', bgcolor: 'background.paper', '&:hover': { bgcolor: 'error.main', color: 'white' } }}>REJECT REQUEST</Button>
+                              <Button variant="outlined" color="error" startIcon={<CancelIcon />} onClick={() => handleOpenReject(selectedReq._id)} sx={{ fontWeight: 'bold', bgcolor: paperBgColor, '&:hover': { bgcolor: 'error.main', color: 'white' } }}>REJECT REQUEST</Button>
                               <Button variant="contained" color="success" startIcon={<CheckCircleIcon />} onClick={() => handleAccept(selectedReq._id)} sx={{ fontWeight: 'bold' }}>APPROVE BOOKING</Button>
                           </Box>
                       </Paper>
@@ -452,7 +459,7 @@ export default function OwnerDashboard() {
 
               {selectedReq.status === 'Rejected' && selectedReq.rejectionReason && (
                 <Grid item xs={12}>
-                  <Box sx={{ p: 3, bgcolor: 'background.paper', borderRadius: 4, border: '1px solid', borderColor: 'error.main' }}>
+                  <Box sx={{ p: 3, bgcolor: paperBgColor, borderRadius: 4, border: '1px solid', borderColor: 'error.main' }}>
                     <Typography variant="subtitle2" color="error.main" fontWeight="bold">Reason for Rejection:</Typography>
                     <Typography variant="body1" color="error.main" mt={1}>{selectedReq.rejectionReason}</Typography>
                   </Box>
@@ -462,12 +469,12 @@ export default function OwnerDashboard() {
             </Grid>
           )}
         </DialogContent>
-        <DialogActions sx={{ p: 3, bgcolor: 'background.default', borderTop: '1px solid', borderColor: 'divider' }}>
+        <DialogActions sx={{ p: 3, bgcolor: pageBgColor, borderTop: '1px solid', borderColor: 'divider' }}>
           <Button onClick={() => setOpenModal(false)} sx={{ fontWeight: 'bold', color: 'text.secondary' }}>Close Window</Button>
         </DialogActions>
       </Dialog>
 
-      <Dialog open={confirmCompleteModal} onClose={() => setConfirmCompleteModal(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { bgcolor: 'background.paper', borderRadius: 3 } }}>
+      <Dialog open={confirmCompleteModal} onClose={() => setConfirmCompleteModal(false)} maxWidth="xs" fullWidth PaperProps={{ sx: { bgcolor: paperBgColor, borderRadius: 3 } }}>
         <DialogTitle sx={{ fontWeight: 'bold', bgcolor: 'success.main', color: 'white', textAlign: 'center' }}>
           Confirm Equipment Return
         </DialogTitle>
@@ -478,13 +485,13 @@ export default function OwnerDashboard() {
             Marking this agreement as Completed will immediately return the <strong>{rentalToComplete?.forklift?.make} {rentalToComplete?.forklift?.model}</strong> back to the available inventory pool for future bookings.
           </Typography>
         </DialogContent>
-        <DialogActions sx={{ p: 3, justifyContent: 'center', gap: 2, bgcolor: 'background.default' }}>
+        <DialogActions sx={{ p: 3, justifyContent: 'center', gap: 2, bgcolor: pageBgColor }}>
           <Button onClick={() => setConfirmCompleteModal(false)} sx={{ fontWeight: 'bold', color: 'text.secondary' }}>Cancel</Button>
           <Button onClick={executeCompleteRental} variant="contained" color="success" sx={{ fontWeight: 'bold', px: 4 }}>Mark Completed</Button>
         </DialogActions>
       </Dialog>
 
-      <Dialog open={rejectModal} onClose={() => setRejectModal(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { bgcolor: 'background.paper', borderRadius: 3 } }}>
+      <Dialog open={rejectModal} onClose={() => setRejectModal(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { bgcolor: paperBgColor, borderRadius: 3 } }}>
         <DialogTitle sx={{ fontWeight: 'bold', bgcolor: 'error.main', color: 'white' }}>
           Decline Booking Request
         </DialogTitle>
@@ -500,7 +507,7 @@ export default function OwnerDashboard() {
             sx={{ mt: 3, '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
           />
         </DialogContent>
-        <DialogActions sx={{ p: 3, bgcolor: 'background.default' }}>
+        <DialogActions sx={{ p: 3, bgcolor: pageBgColor }}>
           <Button onClick={() => setRejectModal(false)} sx={{ fontWeight: 'bold', color: 'text.secondary', mr: 2 }}>Cancel</Button>
           <Button onClick={executeRejectRental} variant="contained" color="error" sx={{ fontWeight: 'bold', px: 4 }}>Confirm Rejection</Button>
         </DialogActions>

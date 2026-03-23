@@ -7,7 +7,12 @@ const userSchema = mongoose.Schema({
   email: { type: String, required: true, unique: true }, // Login credential
   address: { type: String, required: true },
   password: { type: String, required: true },
-  role: { type: String, default: 'user' } // THE FIX: Secure default role
+  role: { type: String, default: 'user' }, // Secure default role
+  
+  // --- NEW 2FA FIELDS ---
+  twoFactorCode: { type: String }, 
+  twoFactorExpires: { type: Date }
+  
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);

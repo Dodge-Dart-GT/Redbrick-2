@@ -26,6 +26,9 @@ export default function Navbar({ currentMode, toggleMode }) {
   
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
+  // Dynamic theme colors
+  const primaryColor = theme.palette.mode === 'dark' ? '#B22222' : '#590016';
+  
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [user, setUser] = useState(null);
 
@@ -41,23 +44,14 @@ export default function Navbar({ currentMode, toggleMode }) {
   const handleLogout = () => {
     localStorage.removeItem('userInfo');
     setUser(null); 
-    navigate('/'); // 🟢 FIXED: Redirect to homepage on logout
+    navigate('/'); 
   };
 
   const handleLogoClick = () => {
-    if (user) {
-        const role = user.role?.toLowerCase()?.trim() || 'user';
-        if (role === 'owner' || role === 'admin' || role === 'staff') {
-            navigate('/models');
-        } else {
-            navigate('/');
-        }
-    } else {
-        navigate('/');
-    }
+    // Unconditionally route to the homepage when the logo is clicked
+    navigate('/');
   };
 
-  // 🟢 LOGIC: Define which menu items to show
   let menuItems = [];
 
   if (user) {
@@ -77,18 +71,16 @@ export default function Navbar({ currentMode, toggleMode }) {
     menuItems.push({ text: 'Browse Models', path: '/models', icon: <LocalShippingIcon /> });
     menuItems.push({ text: 'My Profile', path: '/profile', icon: <AccountCircleIcon /> });
   } else {
-    // 🟢 FIXED: Hide "Browse Models" if we are on the Homepage
     if (location.pathname !== '/') {
         menuItems.push({ text: 'Browse Models', path: '/models', icon: <LocalShippingIcon /> });
     }
   }
 
-  // 🟢 FIXED: Condition to hide Log In button when on Auth pages
   const isAuthPage = location.pathname === '/login' || location.pathname === '/signup';
   
   const drawerContent = (
     <Box sx={{ width: 280, bgcolor: 'background.default', height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <Box sx={{ p: 3, bgcolor: 'primary.main', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <Box sx={{ p: 3, bgcolor: primaryColor, color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, cursor: 'pointer' }} onClick={() => { handleLogoClick(); setDrawerOpen(false); }}>
           <Avatar src="/RedBrickLogo.png" sx={{ width: 40, height: 40, bgcolor: 'white', p: 0.5 }} />
           <Typography variant="h6" fontWeight="900">RED BRICK</Typography>
@@ -101,7 +93,7 @@ export default function Navbar({ currentMode, toggleMode }) {
       <List sx={{ pt: 2, flexGrow: 1 }}>
         <ListItem disablePadding sx={{ mb: 1, mx: 1 }}>
             <ListItemButton onClick={toggleMode}>
-                <ListItemIcon sx={{ color: currentMode === 'dark' ? '#ffca28' : 'primary.main' }}>
+                <ListItemIcon sx={{ color: currentMode === 'dark' ? '#ffca28' : primaryColor }}>
                     {currentMode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
                 </ListItemIcon>
                 <ListItemText primary={`${currentMode === 'light' ? 'Dark' : 'Light'} Mode`} />
@@ -122,7 +114,7 @@ export default function Navbar({ currentMode, toggleMode }) {
         {user ? (
             <Button fullWidth variant="outlined" color="error" startIcon={<LogoutIcon />} onClick={handleLogout}>LOG OUT</Button>
         ) : !isAuthPage && (
-            <Button fullWidth variant="contained" startIcon={<LoginIcon />} onClick={() => { navigate('/login'); setDrawerOpen(false); }}>LOG IN</Button>
+            <Button fullWidth variant="contained" sx={{ bgcolor: primaryColor, '&:hover': { bgcolor: theme.palette.mode === 'dark' ? '#8b1a1a' : '#3a000e' } }} startIcon={<LoginIcon />} onClick={() => { navigate('/login'); setDrawerOpen(false); }}>LOG IN</Button>
         )}
       </Box>
     </Box>
@@ -130,7 +122,7 @@ export default function Navbar({ currentMode, toggleMode }) {
 
   return (
     <>
-      <AppBar position="sticky" elevation={0} sx={{ bgcolor: 'primary.main' }}>
+      <AppBar position="sticky" elevation={0} sx={{ bgcolor: primaryColor }}>
         <Toolbar sx={{ justifyContent: 'space-between', px: { xs: 2, md: 4 } }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, cursor: 'pointer' }} onClick={handleLogoClick}>
             <Avatar src="/RedBrickLogo.png" sx={{ width: 45, height: 45, bgcolor: 'white', p: 0.5 }} />
@@ -149,7 +141,7 @@ export default function Navbar({ currentMode, toggleMode }) {
                 {user ? (
                     <IconButton onClick={handleLogout} sx={{ color: '#ffcdd2' }}><LogoutIcon /></IconButton>
                 ) : !isAuthPage && (
-                    <Button variant="outlined" onClick={() => navigate('/login')} sx={{ color: 'white', borderColor: 'white' }}>Log In</Button>
+                    <Button variant="outlined" onClick={() => navigate('/login')} sx={{ color: 'white', borderColor: 'white', '&:hover': { borderColor: '#fff', bgcolor: 'rgba(255,255,255,0.1)' } }}>Log In</Button>
                 )}
               </Box>
             </Box>
