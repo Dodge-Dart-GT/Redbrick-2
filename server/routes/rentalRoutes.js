@@ -7,6 +7,15 @@ const { protect } = require('../middleware/authMiddleware');
 router.post('/', protect, async (req, res) => {
   const { forkliftId, startDate, endDate } = req.body;
 
+  // --- RBC GATEKEEPER CHECK ---
+  // If the user is an owner or admin, block the database transaction immediately
+  if (req.user && (req.user.role === 'owner' || req.user.role === 'admin')) {
+    return res.status(403).json({ 
+      message: 'Conflict: Management accounts are restricted from creating personal rentals.' 
+    });
+  }
+  // ----------------------------
+
   try {
     const start = new Date(startDate);
     const end = new Date(endDate);

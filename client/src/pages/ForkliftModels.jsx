@@ -19,7 +19,6 @@ import CloseIcon from '@mui/icons-material/Close';
 import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew'; 
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos'; 
 import FilterListIcon from '@mui/icons-material/FilterList';
-import InfoIcon from '@mui/icons-material/Info';
 
 export default function ForkliftModels() {
   const navigate = useNavigate();
@@ -37,6 +36,13 @@ export default function ForkliftModels() {
   const [activeImageIndex, setActiveImageIndex] = useState(0); 
   const [reviewPage, setReviewPage] = useState(1);
   const REVIEWS_PER_PAGE = 3;
+
+  // --- RBC SECURITY GATEKEEPER ---
+  const userInfoString = localStorage.getItem('userInfo');
+  const userInfo = userInfoString ? JSON.parse(userInfoString) : null;
+  const userRole = userInfo?.role?.toLowerCase() || 'guest';
+  const isManagement = userRole === 'owner' || userRole === 'admin';
+  // -------------------------------
 
   useEffect(() => {
     const fetchModels = async () => {
@@ -97,7 +103,6 @@ export default function ForkliftModels() {
   };
 
   const handleBookClick = () => {
-    const userInfo = localStorage.getItem('userInfo');
     if (!userInfo) {
       navigate('/login', { 
         state: { redirectTo: `/book/${selectedModel._id}`, modelData: { model: selectedModel } } 
@@ -109,7 +114,6 @@ export default function ForkliftModels() {
 
   const isBookable = selectedModel ? (selectedModel.status === 'Available' || selectedModel.status === 'Rented') : false;
   const reviewCount = selectedModel?.reviews?.length || 0;
-  const reviewPageCount = Math.max(1, Math.ceil(reviewCount / REVIEWS_PER_PAGE));
   const displayedReviews = selectedModel?.reviews 
     ? [...selectedModel.reviews].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)) 
         .slice((reviewPage - 1) * REVIEWS_PER_PAGE, reviewPage * REVIEWS_PER_PAGE)
@@ -191,7 +195,7 @@ export default function ForkliftModels() {
                     height={isMobile ? "180" : "220"}
                     image={displayImage}
                     alt={`${model.make} ${model.model}`}
-                    loading="lazy" // SPEED OPTIMIZATION
+                    loading="lazy"
                     sx={{ objectFit: 'cover', opacity: isAvailable ? 1 : 0.7, bgcolor: 'action.hover' }}
                   />
                   
@@ -248,7 +252,7 @@ export default function ForkliftModels() {
         {selectedModel && (
           <>
             <DialogTitle 
-              component="div" // NESTING FIX
+              component="div"
               sx={{ 
                 display: 'flex', 
                 justifyContent: 'space-between', 
@@ -333,16 +337,22 @@ export default function ForkliftModels() {
               </Box>
             </DialogContent>
 
-            <DialogActions sx={{ p: 2, borderTop: '1px solid', borderColor: 'divider', bgcolor: 'background.paper' }}>
-              <Button 
-                fullWidth variant="contained" size="large" 
-                disabled={!isBookable} 
-                onClick={handleBookClick} 
-                startIcon={<CalendarMonthIcon />}
-                sx={{ bgcolor: '#B22222', fontWeight: '800', py: 1.5, '&:hover': { bgcolor: '#8b1a1a' } }}
-              >
-                BOOK RENTAL
-              </Button>
+            <DialogActions sx={{ p: 2, borderTop: '1px solid', borderColor: 'divider', bgcolor: 'background.paper', justifyContent: 'center' }}>
+              {isManagement ? (
+                <Typography color="error" fontWeight="bold" sx={{ py: 1.5, textAlign: 'center', width: '100%' }}>
+                  Management accounts cannot rent vehicles.
+                </Typography>
+              ) : (
+                <Button 
+                  fullWidth variant="contained" size="large" 
+                  disabled={!isBookable} 
+                  onClick={handleBookClick} 
+                  startIcon={<CalendarMonthIcon />}
+                  sx={{ bgcolor: '#B22222', fontWeight: '800', py: 1.5, '&:hover': { bgcolor: '#8b1a1a' } }}
+                >
+                  BOOK RENTAL
+                </Button>
+              )}
             </DialogActions>
           </>
         )}
