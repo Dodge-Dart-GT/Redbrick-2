@@ -1,0 +1,9 @@
+@echo off
+echo 🔧 Starting Red Brick Corporation Installer...
+echo 📦 Installing root dependencies...
+call npm install
+echo ⚙️  Running environment setup...
+call npm run setup
+echo ✅ Installation Complete! 
+echo 🚀 To start the app, type: npm run dev
+pause

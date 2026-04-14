@@ -74,7 +74,7 @@ const loginUser = async (req, res) => {
 
       // 3. Send the email
       const mailOptions = {
-        from: '"RBC Security" <hello@demomailtrap.co>', 
+        from: '"RedBrick Security" malibualemanya@gmail.com',
         to: user.email,
         subject: 'Your RBC Verification Code',
         html: `
