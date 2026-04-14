@@ -60,7 +60,7 @@ Backend: http://localhost:5000
 setup.js: The underlying logic for the automated installer.
 
 ⚠️ Security & Contributions
-Keep it Private: Never commit your .env file. It is pre-blocked by .gitignore. Keep your credentials as secure as your "Vicky" keys.
+Keep it Private: Never commit your .env file. It is pre-blocked by .gitignore.
 
 Branches: Create a new branch for features: git checkout -b feature-name.
 
