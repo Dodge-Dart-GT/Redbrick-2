@@ -1,70 +1,70 @@
-# 🏗️ Red Brick Corporation - Forklift Management System (v2)
+🏗️ Red Brick Corporation - Forklift Management System
+Official developer repository for the RBC Forklift Management System. This is a full-stack MERN (MongoDB, Express, React, Node.js) application built with Material UI.
 
-Official developer repository for the RBC Forklift Management System. This is a high-performance MERN stack application (MongoDB, Express, React, Node.js) built with Material UI.
+🛠️ Prerequisites
+Ensure your local environment has the following tools installed:
 
----
+Node.js (LTS version)
 
-## 🛠️ Phase 1: Preparation
-Before you begin, ensure your local environment has the following installed:
-* **Node.js** (LTS version)
-* **Git**
-* **VS Code**
+Git
 
-### External Service Requirements
-You will need your own API keys for these services (free tiers are sufficient):
-* **MongoDB Atlas**: A cloud database cluster for storing forklift and user data.
-* **Cloudinary**: For hosting and managing forklift inventory images.
-* **Mailtrap**: A testing SMTP server for system emails.
-* **Google reCAPTCHA**: For securing the login and signup portals.
+VS Code (or preferred IDE)
 
----
+Required Service Credentials
+To run this application, you must configure your own instances of the following services:
 
-## 🚀 Phase 2: One-Click Installation
+MongoDB Atlas: A cloud database cluster for data persistence.
 
-I have built an automated installer to handle all the heavy lifting across the `client` and `server` directories.
+Cloudinary: Image hosting and management for inventory assets.
 
-### 1. Clone the Repo
-```bash
-git clone [https://github.com/Dodge-Dart-GT/Redbrick-2.git](https://github.com/Dodge-Dart-GT/Redbrick-2.git)
+Mailtrap: An SMTP testing service for system-generated emails.
+
+Google reCAPTCHA: Security keys for user authentication forms.
+
+🚀 Installation & Setup
+This repository includes automated scripts to streamline dependency management and environment configuration.
+
+1. Clone the Repository
+Bash
+git clone https://github.com/Dodge-Dart-GT/Redbrick-2.git
 cd Redbrick-2
 2. Run the Installer
-Windows: Double-click the install.bat file in the root folder.
+Execute the setup script from the root directory to install dependencies for the root, client, and server folders simultaneously.
 
-Mac/Linux: Run chmod +x install.sh && ./install.sh in your terminal.
+Windows: Run install.bat
 
-This script installs all dependencies for the root, frontend, and backend, then generates your local .env file.
+Mac/Linux: Run chmod +x install.sh && ./install.sh
 
-3. Add Your "Fuel" (Environment Variables)
-Go to the server/ folder and open the newly created .env file.
+3. Configure Environment Variables
+Navigate to the server/ directory.
 
-Paste your MongoDB URI, Cloudinary API keys, and other credentials into the fields.
+Open the newly generated .env file.
 
-Save the file. The engine will not start without a valid database connection.
+Input your specific MongoDB URI, Cloudinary keys, and other service credentials.
 
-4. Ignite the Engines
-Return to the root folder and run:
+Save the file. The application will fail to initialize without a valid database connection.
+
+4. Start the Application
+Return to the root folder and execute:
 
 Bash
 npm run dev
-The site will launch both the frontend and backend simultaneously using concurrently.
+This command utilizes concurrently to launch the Express backend and React frontend in a single terminal session.
 
 Frontend: http://localhost:5173
 
-Backend: http://localhost:5000
+Backend API: http://localhost:5000
 
-📂 Project Layout
-/client: React frontend and Material UI themes.
+📂 Project Structure
+/client: React frontend source code and Material UI styling.
 
-/server: Node/Express backend, Mongoose models, and API routes.
+/server: Node.js/Express backend, Mongoose models, and API endpoints.
 
-setup.js: The underlying logic for the automated installer.
+setup.js: Logic for the automated installation and environment scaffolding.
 
-⚠️ Security & Contributions
-Keep it Private: Never commit your .env file. It is pre-blocked by .gitignore.
+⚠️ Contribution & Security
+Environment Protection: Never commit your .env file to the repository. It is ignored by .gitignore by default. Ensure your local credentials remain secure.
 
-Branches: Create a new branch for features: git checkout -b feature-name.
+Feature Development: Create a new branch for all updates: git checkout -b feature-name.
 
-Audits: Before pushing, manually audit any new API routes with tools like OWASP ZAP or Burp Suite.
-
-
----
+Security Audits: Developers are encouraged to perform manual audits on new API routes using tools like OWASP ZAP or Burp Suite prior to submitting pull requests.
