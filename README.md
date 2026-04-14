@@ -1,57 +1,70 @@
-# 🏗️ Red Brick Corporation - Forklift Management System
+# 🏗️ Red Brick Corporation - Forklift Management System (v2)
 
-Welcome to the Red Brick Corporation (RBC) developer setup. This project is built on the MERN stack (MongoDB, Express, React, Node.js) with Material UI. 
-
-To make collaboration seamless, this repository includes an automated setup script that handles dependency installation and environment scaffolding.
+Official developer repository for the RBC Forklift Management System. This is a high-performance MERN stack application (MongoDB, Express, React, Node.js) built with Material UI.
 
 ---
 
-## 🛑 Prerequisites: Required Accounts & Keys
-Before running the installer, you must set up your own developer accounts for the services this app relies on. **Do not ask for the production keys.**
+## 🛠️ Phase 1: Preparation
+Before you begin, ensure your local environment has the following installed:
+* **Node.js** (LTS version)
+* **Git**
+* **VS Code**
 
-You will need free tiers of the following services:
-
-1. **MongoDB Atlas**
-   * Create a free cluster at [mongodb.com](https://www.mongodb.com/cloud/atlas).
-   * Create a database user and password.
-   * Get your connection string (URI) and replace `<password>` with your actual password.
-2. **Cloudinary**
-   * Sign up at [cloudinary.com](https://cloudinary.com/) for handling forklift image uploads.
-   * You will need your `Cloud Name`, `API Key`, and `API Secret`.
-3. **Mailtrap**
-   * Sign up at [mailtrap.io](https://mailtrap.io/) to capture testing emails (like password resets or booking confirmations) without spamming real inboxes.
-   * You will need your `Token`, `User`, and `Password` from a test inbox.
-4. **Google reCAPTCHA**
-   * Register a new site at [Google reCAPTCHA](https://www.google.com/recaptcha/admin) (v2/v3 depending on the current frontend implementation) to get your Secret Key.
-5. **Node.js**
-   * Ensure you have Node.js installed on your machine. 
+### External Service Requirements
+You will need your own API keys for these services (free tiers are sufficient):
+* **MongoDB Atlas**: A cloud database cluster for storing forklift and user data.
+* **Cloudinary**: For hosting and managing forklift inventory images.
+* **Mailtrap**: A testing SMTP server for system emails.
+* **Google reCAPTCHA**: For securing the login and signup portals.
 
 ---
 
-## 🚀 Quick Start / Installation
+## 🚀 Phase 2: One-Click Installation
 
-We use an automated installer to get both the frontend and backend ready simultaneously.
+I have built an automated installer to handle all the heavy lifting across the `client` and `server` directories.
 
-### Step 1: Run the Installer
-Open your terminal in the root folder of this project and run the setup script for your operating system:
-
-* **Windows:** Double-click `install.bat`
-* **Mac/Linux:** Run `bash install.sh` (or `./install.sh`)
-
-*What this does:*
-* Installs master controller dependencies in the root.
-* Installs React dependencies in `/client`.
-* Installs Node/Express dependencies in `/server`.
-* Automatically generates a `server/.env` file from the template.
-
-### Step 2: Add Your "Fuel" (Environment Variables)
-Navigate to the `server/` directory and open the newly created `.env` file. 
-Paste in the API keys and URIs you generated in the Prerequisites step. 
-
-*Note: The server will crash on startup if the MongoDB URI or Cloudinary keys are left blank.*
-
-### Step 3: Fire Up the Engine
-Navigate back to the **root** folder of the project and run:
-
+### 1. Clone the Repo
 ```bash
+git clone [https://github.com/Dodge-Dart-GT/Redbrick-2.git](https://github.com/Dodge-Dart-GT/Redbrick-2.git)
+cd Redbrick-2
+2. Run the Installer
+Windows: Double-click the install.bat file in the root folder.
+
+Mac/Linux: Run chmod +x install.sh && ./install.sh in your terminal.
+
+This script installs all dependencies for the root, frontend, and backend, then generates your local .env file.
+
+3. Add Your "Fuel" (Environment Variables)
+Go to the server/ folder and open the newly created .env file.
+
+Paste your MongoDB URI, Cloudinary API keys, and other credentials into the fields.
+
+Save the file. The engine will not start without a valid database connection.
+
+4. Ignite the Engines
+Return to the root folder and run:
+
+Bash
 npm run dev
+The site will launch both the frontend and backend simultaneously using concurrently.
+
+Frontend: http://localhost:5173
+
+Backend: http://localhost:5000
+
+📂 Project Layout
+/client: React frontend and Material UI themes.
+
+/server: Node/Express backend, Mongoose models, and API routes.
+
+setup.js: The underlying logic for the automated installer.
+
+⚠️ Security & Contributions
+Keep it Private: Never commit your .env file. It is pre-blocked by .gitignore. Keep your credentials as secure as your "Vicky" keys.
+
+Branches: Create a new branch for features: git checkout -b feature-name.
+
+Audits: Before pushing, manually audit any new API routes with tools like OWASP ZAP or Burp Suite.
+
+
+---
