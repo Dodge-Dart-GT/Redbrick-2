@@ -47,8 +47,8 @@ Save the file. The application will fail to initialize without a valid database 
 4. Start the Application
 Return to the root folder and execute:
 
-Bash
-npm run dev
+
+"npm run dev" on Bash
 This command utilizes concurrently to launch the Express backend and React frontend in a single terminal session.
 
 Frontend: http://localhost:5173
