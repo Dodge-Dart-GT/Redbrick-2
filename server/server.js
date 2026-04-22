@@ -33,14 +33,14 @@ app.use(helmet());
 
 // --- ADDED: Secure Session Cookie Middleware ---
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'your_fallback_strong_secret',
+  secret: process.env.SESSION_SECRET || 'vicky_secret_key',
   resave: false,
-  saveUninitialized: true,
+  saveUninitialized: false, // Changed to false to prevent empty session bloat
   cookie: { 
-    httpOnly: true,     // Prevents XSS from reading the cookie
-    secure: process.env.NODE_ENV === 'production', // Uses HTTPS on Render, allows HTTP on localhost
-    sameSite: 'strict', // Prevents CSRF attacks
-    maxAge: 3600000     // 1 hour
+    httpOnly: true,
+    secure: false,    // FORCE THIS TO FALSE FOR NOW
+    sameSite: 'lax',   // Use 'lax' instead of 'strict' for local testing
+    maxAge: 3600000 
   }
 }));
 
@@ -76,6 +76,9 @@ app.get('/', (req, res) => {
 
 // 5. Error Handling Middleware
 app.use((err, req, res, next) => {
+  // ADD THIS LINE BELOW to see the error in your terminal!
+  console.error("SERVER ERROR:", err); 
+
   const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
   res.status(statusCode);
   res.json({

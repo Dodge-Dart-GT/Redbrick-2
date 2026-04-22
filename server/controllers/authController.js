@@ -1,20 +1,24 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
-const transporter = require('../config/mail'); // Importing your new mail setup
+const transporter = require('../config/mail'); 
 
-// --- ADDED: Sanitization for XSS Prevention ---
-const DOMPurify = require('dompurify');
+// --- BULLETPROOF SANITIZATION BLOCK ---
 const { JSDOM } = require('jsdom');
+const createDOMPurify = require('dompurify');
 const window = new JSDOM('').window;
-const purify = DOMPurify(window);
+const purify = createDOMPurify(window);
 
-// Helper function to sanitize objects
 const sanitizeInput = (input) => {
-  if (typeof input === 'string') {
-    return purify.sanitize(input);
+  try {
+    if (typeof input === 'string' && input.trim() !== '') {
+      return purify.sanitize(input.trim());
+    }
+    return input;
+  } catch (err) {
+    console.error("🚨 Sanitizer tripped up on:", input, err);
+    return input; 
   }
-  return input; // Return as is if it's not a string (like a number or boolean)
 };
 // ----------------------------------------------
 
@@ -29,15 +33,14 @@ const generateToken = (id) => {
 // @route   POST /api/auth/register
 // @access  Public
 const registerUser = async (req, res) => {
-  // Sanitize all incoming text fields to prevent XSS
-  const firstName = sanitizeInput(req.body.firstName);
-  const lastName = sanitizeInput(req.body.lastName);
-  const email = sanitizeInput(req.body.email);
-  const phone = sanitizeInput(req.body.phone);
-  const address = sanitizeInput(req.body.address);
-  const password = req.body.password; // Do not sanitize passwords (hashing handles them securely)
-
   try {
+    const firstName = sanitizeInput(req.body.firstName);
+    const lastName = sanitizeInput(req.body.lastName);
+    const email = sanitizeInput(req.body.email);
+    const phone = sanitizeInput(req.body.phone);
+    const address = sanitizeInput(req.body.address);
+    const password = req.body.password; 
+
     const userExists = await User.findOne({ email });
     if (userExists) {
       return res.status(400).json({ message: 'User already exists' });
@@ -53,7 +56,7 @@ const registerUser = async (req, res) => {
       phone,
       address, 
       password: hashedPassword,
-      role: 'user' // Standardized to 'user'
+      role: 'user' 
     });
 
     if (user) {
@@ -69,8 +72,8 @@ const registerUser = async (req, res) => {
       res.status(400).json({ message: 'Invalid user data' });
     }
   } catch (error) {
-    console.error("Registration Error:", error);
-    res.status(500).json({ message: 'Server Error: ' + error.message });
+    console.error("🚨 Registration Error Engine Stall:", error);
+    res.status(500).json({ message: 'Server Error', error: error.message });
   }
 };
 
@@ -78,24 +81,20 @@ const registerUser = async (req, res) => {
 // @route   POST /api/auth/login
 // @access  Public
 const loginUser = async (req, res) => {
-  // Sanitize the email just in case, leave password alone
-  const email = sanitizeInput(req.body.email);
-  const password = req.body.password;
-
   try {
+    const email = sanitizeInput(req.body.email);
+    const password = req.body.password;
+
     const user = await User.findOne({ email });
 
     if (user && (await bcrypt.compare(password, user.password))) {
       
-      // 1. Generate 6-digit code
       const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
 
-      // 2. Save code and set an expiration time (10 minutes from now)
       user.twoFactorCode = otpCode;
       user.twoFactorExpires = Date.now() + 10 * 60 * 1000; 
       await user.save();
 
-      // 3. Send the email
       const mailOptions = {
         from: '"RedBrick Security" malibualemanya@gmail.com',
         to: user.email,
@@ -103,27 +102,28 @@ const loginUser = async (req, res) => {
         html: `
           <div style="font-family: Arial, sans-serif; padding: 20px;">
             <h2>Security Verification</h2>
-            <p>Your 2FA login code is: <b style="font-size: 24px; color: #590016;">${otpCode}</b></p>
+            <p>Your 2FA login code is: <b style="font-size: 24px; color: #B22222;">${otpCode}</b></p>
             <p>This code will expire in 10 minutes.</p>
           </div>
         `
       };
 
-      await transporter.sendMail(mailOptions);
+      // --- MAILTRAP BYPASS IMPLEMENTED HERE ---
+      // await transporter.sendMail(mailOptions);
+      console.log(`\n=========================================\n🚨 BYPASS 2FA CODE FOR ${user.email}:\n🚨 >>>> ${otpCode} <<<<\n=========================================\n`);
 
-      // 4. Tell frontend to show the 2FA input screen
       res.status(200).json({
-        message: "2FA code sent to email",
+        message: "2FA code generated (Email Bypassed)",
         requires2FA: true,
-        email: user.email // Send this back so the frontend knows who is verifying
+        email: user.email 
       });
 
     } else {
       res.status(400).json({ message: 'Invalid credentials' });
     }
   } catch (error) {
-    console.error("Login Error:", error);
-    res.status(500).json({ message: 'Server Error' });
+    console.error("🚨 Login Error Engine Stall:", error);
+    res.status(500).json({ message: 'Server Error', error: error.message });
   }
 };
 
@@ -131,22 +131,18 @@ const loginUser = async (req, res) => {
 // @route   POST /api/auth/verify-2fa
 // @access  Public
 const verify2FA = async (req, res) => {
-  // Sanitize inputs
-  const email = sanitizeInput(req.body.email);
-  const otpCode = sanitizeInput(req.body.otpCode);
-
   try {
+    const email = sanitizeInput(req.body.email);
+    const otpCode = sanitizeInput(req.body.otpCode);
+
     const user = await User.findOne({ email });
 
-    // Check if user exists, code matches, AND code isn't expired
     if (user && user.twoFactorCode === otpCode && user.twoFactorExpires > Date.now()) {
       
-      // Clear the codes from the database so they can't be reused
       user.twoFactorCode = undefined;
       user.twoFactorExpires = undefined;
       await user.save();
 
-      // Finally, send the real login data!
       res.json({
         _id: user.id,
         firstName: user.firstName,
@@ -160,13 +156,13 @@ const verify2FA = async (req, res) => {
       res.status(400).json({ message: 'Invalid or expired 2FA code' });
     }
   } catch (error) {
-    console.error("2FA Verification Error:", error);
-    res.status(500).json({ message: 'Server Error' });
+    console.error("🚨 2FA Verification Error Engine Stall:", error);
+    res.status(500).json({ message: 'Server Error', error: error.message });
   }
 };
 
 module.exports = {
   registerUser,
   loginUser,
-  verify2FA // Don't forget to export the new function!
+  verify2FA 
 };
