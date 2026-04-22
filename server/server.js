@@ -5,6 +5,8 @@ const dotenv = require('dotenv');
 dotenv.config(); 
 
 const cors = require('cors');
+const helmet = require('helmet'); // <-- ADDED: Security Headers
+const session = require('express-session'); // <-- ADDED: Secure Session Cookies
 const connectDB = require('./config/db');
 
 // --- IMPORT ROUTES ---
@@ -21,6 +23,27 @@ connectDB();
 const app = express();
 
 // 3. Middleware
+
+// --- ADDED: Trust proxy for Render ---
+// Since Render acts as a proxy, this is required for secure cookies to work properly on HTTPS.
+app.set('trust proxy', 1);
+
+// --- ADDED: Helmet Security Middleware ---
+app.use(helmet());
+
+// --- ADDED: Secure Session Cookie Middleware ---
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'your_fallback_strong_secret',
+  resave: false,
+  saveUninitialized: true,
+  cookie: { 
+    httpOnly: true,     // Prevents XSS from reading the cookie
+    secure: process.env.NODE_ENV === 'production', // Uses HTTPS on Render, allows HTTP on localhost
+    sameSite: 'strict', // Prevents CSRF attacks
+    maxAge: 3600000     // 1 hour
+  }
+}));
+
 // Secure CORS Configuration for Render & Netlify Deployment
 const allowedOrigins = ['http://localhost:5173', process.env.FRONTEND_URL];
 

@@ -3,6 +3,21 @@ const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const transporter = require('../config/mail'); // Importing your new mail setup
 
+// --- ADDED: Sanitization for XSS Prevention ---
+const DOMPurify = require('dompurify');
+const { JSDOM } = require('jsdom');
+const window = new JSDOM('').window;
+const purify = DOMPurify(window);
+
+// Helper function to sanitize objects
+const sanitizeInput = (input) => {
+  if (typeof input === 'string') {
+    return purify.sanitize(input);
+  }
+  return input; // Return as is if it's not a string (like a number or boolean)
+};
+// ----------------------------------------------
+
 // Generate JWT Token
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -14,7 +29,13 @@ const generateToken = (id) => {
 // @route   POST /api/auth/register
 // @access  Public
 const registerUser = async (req, res) => {
-  const { firstName, lastName, email, phone, address, password } = req.body;
+  // Sanitize all incoming text fields to prevent XSS
+  const firstName = sanitizeInput(req.body.firstName);
+  const lastName = sanitizeInput(req.body.lastName);
+  const email = sanitizeInput(req.body.email);
+  const phone = sanitizeInput(req.body.phone);
+  const address = sanitizeInput(req.body.address);
+  const password = req.body.password; // Do not sanitize passwords (hashing handles them securely)
 
   try {
     const userExists = await User.findOne({ email });
@@ -57,7 +78,9 @@ const registerUser = async (req, res) => {
 // @route   POST /api/auth/login
 // @access  Public
 const loginUser = async (req, res) => {
-  const { email, password } = req.body;
+  // Sanitize the email just in case, leave password alone
+  const email = sanitizeInput(req.body.email);
+  const password = req.body.password;
 
   try {
     const user = await User.findOne({ email });
@@ -108,7 +131,9 @@ const loginUser = async (req, res) => {
 // @route   POST /api/auth/verify-2fa
 // @access  Public
 const verify2FA = async (req, res) => {
-  const { email, otpCode } = req.body;
+  // Sanitize inputs
+  const email = sanitizeInput(req.body.email);
+  const otpCode = sanitizeInput(req.body.otpCode);
 
   try {
     const user = await User.findOne({ email });
@@ -144,4 +169,4 @@ module.exports = {
   registerUser,
   loginUser,
   verify2FA // Don't forget to export the new function!
-};  
+};
